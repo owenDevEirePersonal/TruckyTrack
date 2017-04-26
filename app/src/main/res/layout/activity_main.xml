@@ -6,24 +6,33 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <fragment
-        android:id="@+id/map"
-        android:name="com.google.android.gms.maps.SupportMapFragment"
-        android:layout_width="368dp"
-        android:layout_height="495dp"
-        tools:context="com.deveire.dev.truckytrack.MainActivity"
-        tools:layout_editor_absoluteX="8dp"
-        tools:layout_editor_absoluteY="28dp"/>
 
-    <TextView
-        android:id="@+id/mapText"
+    <Button
+        android:id="@+id/managerButton"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_marginBottom="8dp"
+        android:layout_marginRight="8dp"
         android:layout_marginTop="8dp"
-        android:text="TextView"
-        map:layout_constraintBottom_toTopOf="@+id/map"
+        android:text="Manager"
+        map:layout_constraintBottom_toBottomOf="parent"
+        map:layout_constraintRight_toRightOf="parent"
         map:layout_constraintTop_toTopOf="parent"
-        map:layout_constraintVertical_bias="0.0"
-        tools:layout_editor_absoluteX="8dp"/>
+        map:layout_constraintVertical_bias="0.523"
+        map:layout_constraintLeft_toRightOf="@+id/driverButton"
+        android:layout_marginLeft="8dp"
+        map:layout_constraintHorizontal_bias="1.0"/>
+
+    <Button
+        android:id="@+id/driverButton"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginLeft="16dp"
+        android:layout_marginTop="8dp"
+        android:text="Driver"
+        map:layout_constraintBottom_toBottomOf="parent"
+        map:layout_constraintLeft_toLeftOf="parent"
+        map:layout_constraintTop_toTopOf="parent"
+        map:layout_constraintVertical_bias="0.0"/>
 </android.support.constraint.ConstraintLayout>
