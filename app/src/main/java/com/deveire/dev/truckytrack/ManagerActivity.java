@@ -15,10 +15,12 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -55,10 +57,12 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
 
     private TextView mapText;
     private Spinner itemsSpinner;
+    private EditText countText;
 
     private ArrayList<String> itemIdsFromServer;
     private String currentItemID;
-    private ArrayList<Location> allCurrentItemLocations;
+    private int numberOfResultsToRetrieve;
+    private ArrayList<LatLng> allCurrentItemLocations;
 
     private Location userLocation;
 
@@ -76,6 +80,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
 
     private final int pingingServerFor_ItemIds = 1;
     private final int pingingServerFor_Locations = 2;
+    private final int pingingServerFor_Extra_Locations = 3;
     private final int pingingServerFor_Nothing = 0;
 
 
@@ -83,6 +88,9 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     private NetworkFragment aNetworkFragment;
     //[/Network and periodic location update, Variables]
 
+    //[Testing Variables]
+    private ArrayList<LatLng> testStoreOfLocations;
+    //[/Testing Variables]
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -98,23 +106,33 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
 
         mapText = (TextView) findViewById(R.id.mapText);
         itemsSpinner = (Spinner) findViewById(R.id.spinner);
+        itemsSpinner.setOnItemSelectedListener(this);
 
         itemIdsFromServer = new ArrayList<String>();
-        allCurrentItemLocations = new ArrayList<Location>();
+        allCurrentItemLocations = new ArrayList<LatLng>();
 
         currentItemID = "NONE";
+        numberOfResultsToRetrieve = 10;
+
+        mapText = (TextView) findViewById(R.id.mapText);
+        itemsSpinner = (Spinner) findViewById(R.id.spinner);
+        countText = (EditText) findViewById(R.id.editText);
+        countText.setText("" + numberOfResultsToRetrieve);
+
 
         userLocation = new Location("Truck Manager");
-        userLocation.setLatitude(0);
-        userLocation.setLongitude(0);
-
+        userLocation.setLatitude(52.663585);
+        userLocation.setLongitude(-8.636135);
 
         pingingServerFor = pingingServerFor_Nothing;
 
         //aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), "https://192.168.1.188:8080/smrttrackerserver-1.0.0-SNAPSHOT/hello?isDoomed=yes");
+        /*
         serverURL = "http://geo.dev.deveire.com/store/keg/location?pullitemsrequest=true";
         pingingServerFor = pingingServerFor_ItemIds;
         aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
+        */
+        loadTestIDs();
         //0000,0000 is a location in the middle of the atlantic occean south of western africa and unlikely to contain a golf course.
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -204,34 +222,176 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
 
         // Add a marker in Sydney and move the camera
         mMap.addMarker(new MarkerOptions().position(new LatLng(userLocation.getLatitude(), userLocation.getLongitude())).title("You"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(userLocation.getLatitude(), userLocation.getLongitude()), 5));
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(userLocation.getLatitude(), userLocation.getLongitude()), 7));
+        mMap.setOnCameraIdleListener(new mapScrolledListener());
         updateMap();
     }
 
     private void updateMap()
     {
         mMap.clear();
-        for (Location aloc: allCurrentItemLocations)
+        for (LatLng aloc: allCurrentItemLocations)
         {
-            mMap.addMarker(new MarkerOptions().position(new LatLng(aloc.getLatitude(), aloc.getLongitude())).title("Truck 1"));
+            mMap.addMarker(new MarkerOptions().position(aloc).title("Truck 1"));
+            Log.i("Map Update", "Placing Marker at " + aloc.toString());
         }
         mMap.addMarker(new MarkerOptions().position(new LatLng(userLocation.getLatitude(), userLocation.getLongitude())).title("You"));
 
     }
 
+
+
     private void retrieveLocations()
     {
+        /*
         pingingServerFor = pingingServerFor_Locations;
-        serverURL = "http://geo.dev.deveire.com/store/location?id=" + currentItemID;
+        serverURL = "http://geo.dev.deveire.com/store/location?id=" + currentItemID + "&count=" + numberOfResultsToRetrieve;
         //lat and long are doubles, will cause issue? nope
         Log.i("Network Update", "Attempting to start download from onLocationChanged." + serverURL);
         aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
+        */
+        Log.i("Dropdown Update", "Dropdown select, Loading intial locations for " + currentItemID);
+        loadTestLocations(numberOfResultsToRetrieve);
+    }
+
+    private void retrieveLocations(LatLng centreOfMap, double radiusInMetres)
+    {
+        /*
+        pingingServerFor = pingingServerFor_Extra_Locations;
+        serverURL = "http://geo.dev.deveire.com/store/location?id=" + currentItemID + "&CentreLat=" + centreOfMap.latitude + "&CentreLon=" + centreOfMap.longitude + "&radius=" + radiusInMetres;
+        //lat and long are doubles, will cause issue? nope
+        Log.i("Network Update", "Attempting to start download to retrieve locations." + serverURL);
+        aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
+        */
+        Log.i("Dropdown Update", "Map Moved, Loading new locations for " + currentItemID + " from centre " + centreOfMap.toString() + " at radius " + radiusInMetres);
+        loadMoreTestLocations(centreOfMap, radiusInMetres);
+    }
+
+    private void loadTestIDs()
+    {
+        itemIdsFromServer = new ArrayList<String>();
+        itemIdsFromServer.add("Truck 1");
+        itemIdsFromServer.add("Truck 2");
+        itemIdsFromServer.add("Trucky Trailer");
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(ManagerActivity.this, android.R.layout.simple_spinner_dropdown_item, itemIdsFromServer);
+        itemsSpinner.setAdapter(adapter);
+    }
+
+    private void loadTestLocations(int count)
+    {
+        double firstLocationLat = 52.663585;
+        double firstLocationLng= -8.636135;
+        allCurrentItemLocations = new ArrayList<LatLng>();
+        switch (currentItemID)
+        {
+            case "Truck 1":
+                for (int i = 1; i <= count; i++)
+                {
+                    allCurrentItemLocations.add(new LatLng(firstLocationLat + 0.1 * i, firstLocationLng + 0.1 * i));
+                }
+                testStoreOfLocations = new ArrayList<LatLng>();
+                testStoreOfLocations = (ArrayList<LatLng>) allCurrentItemLocations.clone();
+                LatLng lastLoc = allCurrentItemLocations.get(allCurrentItemLocations.size() - 1);
+                testStoreOfLocations.add(new LatLng(lastLoc.latitude + 1.1, lastLoc.longitude + 0.1));
+                testStoreOfLocations.add(new LatLng(lastLoc.latitude + 2.2, lastLoc.longitude + 0.2));
+                testStoreOfLocations.add(new LatLng(lastLoc.latitude + 3.3, lastLoc.longitude + 0.3));
+                testStoreOfLocations.add(new LatLng(lastLoc.latitude + 4.4, lastLoc.longitude + 0.4));
+                testStoreOfLocations.add(new LatLng(lastLoc.latitude + 5.5, lastLoc.longitude + 0.5));
+                testStoreOfLocations.add(new LatLng(lastLoc.latitude + 6.6, lastLoc.longitude + 0.6));
+            break;
+
+            case "Truck 2":
+                for (int i = 1; i <= count; i++)
+                {
+                    allCurrentItemLocations.add(new LatLng(firstLocationLat - 0.1 * i, firstLocationLng + 0.1 * i));
+                }
+                testStoreOfLocations = new ArrayList<LatLng>();
+                testStoreOfLocations = (ArrayList<LatLng>) allCurrentItemLocations.clone();
+                LatLng lastLoc2 = allCurrentItemLocations.get(allCurrentItemLocations.size() - 1);
+                testStoreOfLocations.add(new LatLng(lastLoc2.latitude - 1.1, lastLoc2.longitude + 0.1));
+                testStoreOfLocations.add(new LatLng(lastLoc2.latitude - 2.2, lastLoc2.longitude + 0.2));
+                testStoreOfLocations.add(new LatLng(lastLoc2.latitude - 3.3, lastLoc2.longitude + 0.3));
+                testStoreOfLocations.add(new LatLng(lastLoc2.latitude - 4.4, lastLoc2.longitude + 0.4));
+                testStoreOfLocations.add(new LatLng(lastLoc2.latitude - 5.5, lastLoc2.longitude + 0.5));
+                testStoreOfLocations.add(new LatLng(lastLoc2.latitude - 6.6, lastLoc2.longitude + 0.6));
+            break;
+
+            case "Trucky Trailer":
+                for (int i = 1; i <= count; i++)
+                {
+                    allCurrentItemLocations.add(new LatLng(firstLocationLat - 0.1 * i, firstLocationLng - 0.1 * i));
+                }
+                testStoreOfLocations = new ArrayList<LatLng>();
+                testStoreOfLocations = (ArrayList<LatLng>) allCurrentItemLocations.clone();
+                LatLng lastLoc3 = allCurrentItemLocations.get(allCurrentItemLocations.size() - 1);
+                testStoreOfLocations.add(new LatLng(lastLoc3.latitude - 1.1, lastLoc3.longitude - 0.1));
+                testStoreOfLocations.add(new LatLng(lastLoc3.latitude - 2.2, lastLoc3.longitude - 0.2));
+                testStoreOfLocations.add(new LatLng(lastLoc3.latitude - 3.3, lastLoc3.longitude - 0.3));
+                testStoreOfLocations.add(new LatLng(lastLoc3.latitude - 4.4, lastLoc3.longitude - 0.4));
+                testStoreOfLocations.add(new LatLng(lastLoc3.latitude - 5.5, lastLoc3.longitude - 0.5));
+                testStoreOfLocations.add(new LatLng(lastLoc3.latitude - 6.6, lastLoc3.longitude - 0.6));
+                break;
+        }
+
+        Log.i("Update Map", "Update Map from Intial location loading");
+        updateMap();
+
+    }
+
+    private void loadMoreTestLocations(LatLng centre, double radius)
+    {
+        if(allCurrentItemLocations.size() > 0)
+        {
+            Location locCentre = new Location("");
+            locCentre.setLatitude(centre.latitude);
+            locCentre.setLongitude(centre.longitude);
+
+            float[] distanceBetween = new float[1];
+            for (LatLng aloc : testStoreOfLocations)
+            {
+                Location test = new Location("");
+                test.setLatitude(aloc.latitude);
+                test.setLongitude(aloc.longitude);
+                Location.distanceBetween(centre.latitude, centre.longitude, aloc.latitude, aloc.longitude, distanceBetween);
+                Log.i("LoadUpdate", "distancebetween point and centre is " + test.distanceTo(locCentre) + " against radius of " + radius );
+                if (test.distanceTo(locCentre) < radius && !arrayContains(allCurrentItemLocations, aloc))
+                {
+                    allCurrentItemLocations.add(aloc);
+                }
+            }
+            Log.i("Update Map", "Update Map from More location loading");
+            updateMap();
+        }
+
+    }
+
+    private boolean arrayContains(ArrayList<LatLng> array, LatLng bLatLng)
+    {
+        for (LatLng aLatLng: array)
+        {
+            if(bLatLng.latitude == aLatLng.latitude && bLatLng.longitude == aLatLng.longitude)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int pos, long id)
     {
         currentItemID = (String) parent.getItemAtPosition(pos);
+        Log.i("Dropdown Update", "Dropdown select, ItemID now equals " + parent.getItemAtPosition(pos));
+        try
+        {
+            numberOfResultsToRetrieve = Integer.getInteger(countText.getText().toString());
+        }
+        catch (Exception e)
+        {
+            numberOfResultsToRetrieve = 10;
+            countText.setText("" + numberOfResultsToRetrieve);
+        }
+        retrieveLocations();
     }
 
     @Override
@@ -241,6 +401,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     }
 
 
+//**********[Location Update and server pinging Code]
     @Override
     public void onConnectionFailed(ConnectionResult result) {
         // An unresolvable error has occurred and a connection to Google APIs
@@ -376,26 +537,17 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
 
                     case pingingServerFor_Locations:
                         JSONArray jsonResultFromServer = new JSONArray(result);
-                        allCurrentItemLocations = new ArrayList<Location>();
+                        allCurrentItemLocations = new ArrayList<LatLng>();
                         for(int i = 0; i < jsonResultFromServer.length(); i++)
                         {
-                            Location aloc = new Location("TruckLocation");
-                            aloc.setLatitude(jsonResultFromServer.getJSONObject(i).getDouble("Lat"));
-                            aloc.setLongitude(jsonResultFromServer.getJSONObject(i).getDouble("Lon"));
+                            LatLng aloc = new LatLng(jsonResultFromServer.getJSONObject(i).getDouble("Lat"), jsonResultFromServer.getJSONObject(i).getDouble("Lon"));
                             allCurrentItemLocations.add(aloc);
                         }
 
                         Log.i("Location Update", "Recieved locations.");
-
-                        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)
-                        {
-                            //locationScanInterval = jsonResultFromServer.getInt("intervalRequest");
-
-                            updateMap();
-
-                            Log.i("Location Update", "Recieved locations.");
-                        }
+                        updateMap();
                         mapText.setText("Receving Locations");
+
                         break;
 
                     default: Log.e("Network Update", "PingingServerFor value does not match any known type"); break;
@@ -486,5 +638,24 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
 
         }
     }
-//**********[Location Update and server pinging Code]
+//**********[/Location Update and server pinging Code]
+
+    class mapScrolledListener implements GoogleMap.OnCameraIdleListener
+    {
+        @Override
+        public void onCameraIdle()
+        {
+            LatLng viewportCentre = mMap.getCameraPosition().target;
+
+            Location a = new Location("");
+            a.setLatitude(mMap.getProjection().getVisibleRegion().latLngBounds.northeast.latitude);
+            a.setLongitude(mMap.getProjection().getVisibleRegion().latLngBounds.northeast.longitude);
+            Location b = new Location("");
+            b.setLatitude(viewportCentre.latitude);
+            b.setLongitude(viewportCentre.longitude);
+            double viewportRadius = a.distanceTo(b);
+
+            retrieveLocations(viewportCentre, viewportRadius);
+        }
+    }
 }
