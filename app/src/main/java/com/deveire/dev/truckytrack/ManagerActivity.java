@@ -78,6 +78,8 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
 
     private int pingingServerFor;
 
+    private Handler refreshHandler;
+
     private final int pingingServerFor_ItemIds = 1;
     private final int pingingServerFor_Locations = 2;
     private final int pingingServerFor_Extra_Locations = 3;
@@ -126,13 +128,10 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
 
         pingingServerFor = pingingServerFor_Nothing;
 
-        //aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), "https://192.168.1.188:8080/smrttrackerserver-1.0.0-SNAPSHOT/hello?isDoomed=yes");
-        /*
-        serverURL = "http://geo.dev.deveire.com/store/keg/location?pullitemsrequest=true";
-        pingingServerFor = pingingServerFor_ItemIds;
-        aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
-        */
-        loadTestIDs();
+        refreshHandler = new Handler();
+        startRepeatingRefresh();
+
+
         //0000,0000 is a location in the middle of the atlantic occean south of western africa and unlikely to contain a golf course.
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -198,12 +197,45 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
 
     }
 
-    private void timedUpdate()
+    @Override
+    protected void onDestroy()
     {
-        //TODO: Add logic to update the network check.
+        super.onDestroy();
+        stopRepeatingRefresh();
     }
 
+    private void startRepeatingRefresh()
+    {
+        periodicRefresher.run();
+    }
 
+    private void stopRepeatingRefresh()
+    {
+        refreshHandler.removeCallbacks(periodicRefresher);
+    }
+
+    Runnable periodicRefresher = new Runnable()
+    {
+        @Override
+        public void run()
+        {
+            try
+            {
+                Log.i("Network Update", "Launching Refresh ");
+                //aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), "https://192.168.1.188:8080/smrttrackerserver-1.0.0-SNAPSHOT/hello?isDoomed=yes");
+                /*
+                serverURL = "http://geo.dev.deveire.com/store/keg/location?pullitemsrequest=true";
+                pingingServerFor = pingingServerFor_ItemIds;
+                aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
+                */
+                loadTestIDs();
+            }
+            finally
+            {
+                refreshHandler.postDelayed(periodicRefresher, locationScanInterval * 1000);
+            }
+        }
+    };
 
 
     /**
@@ -224,12 +256,16 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         mMap.addMarker(new MarkerOptions().position(new LatLng(userLocation.getLatitude(), userLocation.getLongitude())).title("You"));
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(userLocation.getLatitude(), userLocation.getLongitude()), 7));
         mMap.setOnCameraIdleListener(new mapScrolledListener());
-        updateMap();
+        updateMap(false);
     }
 
-    private void updateMap()
+    private void updateMap(boolean clearPrevious)
     {
-        mMap.clear();
+        if(clearPrevious)
+        {
+            mMap.clear();
+        }
+
         for (LatLng aloc: allCurrentItemLocations)
         {
             mMap.addMarker(new MarkerOptions().position(aloc).title("Truck 1"));
@@ -273,8 +309,20 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         itemIdsFromServer.add("Truck 1");
         itemIdsFromServer.add("Truck 2");
         itemIdsFromServer.add("Trucky Trailer");
+
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(ManagerActivity.this, android.R.layout.simple_spinner_dropdown_item, itemIdsFromServer);
         itemsSpinner.setAdapter(adapter);
+
+        int currentIndexOfDropdown = 0;
+        for (String aID : itemIdsFromServer)
+        {
+            if (aID.matches(currentItemID))
+            {
+               itemsSpinner.setSelection(currentIndexOfDropdown);
+               break;
+            }
+            currentIndexOfDropdown++;
+        }
     }
 
     private void loadTestLocations(int count)
@@ -334,7 +382,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         }
 
         Log.i("Update Map", "Update Map from Intial location loading");
-        updateMap();
+        updateMap(true);
 
     }
 
@@ -360,7 +408,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
                 }
             }
             Log.i("Update Map", "Update Map from More location loading");
-            updateMap();
+            updateMap(false);
         }
 
     }
@@ -521,14 +569,15 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         {
             if(result != null)
             {
+                JSONArray jsonResultFromServer = new JSONArray(result);
                 switch (pingingServerFor)
                 {
                     case pingingServerFor_ItemIds:
-                        JSONArray ajsonResultFromServer = new JSONArray(result);
+                        jsonResultFromServer = new JSONArray(result);
                         itemIdsFromServer = new ArrayList<String>();
-                        for(int i = 0; i < ajsonResultFromServer.length(); i++)
+                        for(int i = 0; i < jsonResultFromServer.length(); i++)
                         {
-                            itemIdsFromServer.add(ajsonResultFromServer.getJSONObject(i).getString("ItemId"));
+                            itemIdsFromServer.add(jsonResultFromServer.getJSONObject(i).getString("ItemId"));
                         }
                         ArrayAdapter<String> adapter = new ArrayAdapter<String>(ManagerActivity.this, android.R.layout.simple_spinner_dropdown_item, itemIdsFromServer);
                         itemsSpinner.setAdapter(adapter);
@@ -536,7 +585,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
                         break;
 
                     case pingingServerFor_Locations:
-                        JSONArray jsonResultFromServer = new JSONArray(result);
+                        jsonResultFromServer = new JSONArray(result);
                         allCurrentItemLocations = new ArrayList<LatLng>();
                         for(int i = 0; i < jsonResultFromServer.length(); i++)
                         {
@@ -545,7 +594,22 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
                         }
 
                         Log.i("Location Update", "Recieved locations.");
-                        updateMap();
+                        updateMap(true);
+                        mapText.setText("Receving Locations");
+
+                        break;
+
+                    case pingingServerFor_Extra_Locations:
+                        jsonResultFromServer = new JSONArray(result);
+                        allCurrentItemLocations = new ArrayList<LatLng>();
+                        for(int i = 0; i < jsonResultFromServer.length(); i++)
+                        {
+                            LatLng aloc = new LatLng(jsonResultFromServer.getJSONObject(i).getDouble("Lat"), jsonResultFromServer.getJSONObject(i).getDouble("Lon"));
+                            allCurrentItemLocations.add(aloc);
+                        }
+
+                        Log.i("Location Update", "Recieved extra locations.");
+                        updateMap(false);
                         mapText.setText("Receving Locations");
 
                         break;
