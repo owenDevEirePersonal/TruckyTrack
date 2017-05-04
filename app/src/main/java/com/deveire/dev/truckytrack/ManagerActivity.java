@@ -1,5 +1,6 @@
 package com.deveire.dev.truckytrack;
 
+import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -21,8 +22,6 @@ import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationListener;
-import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -45,7 +44,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     private Spinner itemsSpinner;
     private EditText countText;
 
-    private ArrayList<String> itemIdsFromServer;
+    private ArrayList<ItemIDs> itemIdsFromServer;
     private String currentItemID;
     private int numberOfResultsToRetrieve;
     private ArrayList<LatLng> allCurrentItemLocations;
@@ -56,7 +55,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     private GoogleApiClient mGoogleApiClient;
     private Location usersLocation;
     private int locationScanInterval;
-    
+
     private final String SAVED_LOCATION_KEY = "79";
 
     private int pingingServerFor;
@@ -93,7 +92,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         itemsSpinner = (Spinner) findViewById(R.id.spinner);
         itemsSpinner.setOnItemSelectedListener(this);
 
-        itemIdsFromServer = new ArrayList<String>();
+        itemIdsFromServer = new ArrayList<ItemIDs>();
         allCurrentItemLocations = new ArrayList<LatLng>();
 
         currentItemID = "NONE";
@@ -161,12 +160,12 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
             {
                 Log.i("Network Update", "Launching Refresh ");
                 //aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), "https://192.168.1.188:8080/smrttrackerserver-1.0.0-SNAPSHOT/hello?isDoomed=yes");
-                /*
-                serverURL = "http://geo.dev.deveire.com/store/keg/location?pullitemsrequest=true";
+
+                serverURL = "http://192.168.1.188:8080/TruckyTrackServerSide/TruckyTrackServlet?request=getitemids";
                 pingingServerFor = pingingServerFor_ItemIds;
                 aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
-                */
-                loadTestIDs();
+
+                //loadTestIDs();
             }
             finally
             {
@@ -243,16 +242,22 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
 
     private void loadTestIDs()
     {
-        itemIdsFromServer = new ArrayList<String>();
-        itemIdsFromServer.add("Truck 1");
-        itemIdsFromServer.add("Truck 2");
-        itemIdsFromServer.add("Trucky Trailer");
+        itemIdsFromServer = new ArrayList<ItemIDs>();
+        itemIdsFromServer.add(new ItemIDs(1, "Truck 1"));
+        itemIdsFromServer.add(new ItemIDs(2, "Truck 2"));
+        itemIdsFromServer.add(new ItemIDs(3, "Trucky Trailer"));
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(ManagerActivity.this, android.R.layout.simple_spinner_dropdown_item, itemIdsFromServer);
+        ArrayList<String> itemNames = new ArrayList<String>();
+        for(int i = 0; i < itemIdsFromServer.size(); i++)
+        {
+            itemNames.add(itemIdsFromServer.get(i).getName());
+        }
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(ManagerActivity.this, android.R.layout.simple_spinner_dropdown_item, itemNames);
         itemsSpinner.setAdapter(adapter);
 
         int currentIndexOfDropdown = 0;
-        for (String aID : itemIdsFromServer)
+        for (String aID : itemNames)
         {
             if (aID.matches(currentItemID))
             {
@@ -455,13 +460,22 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
                 switch (pingingServerFor)
                 {
                     case pingingServerFor_ItemIds:
-                        jsonResultFromServer = new JSONArray(result);
-                        itemIdsFromServer = new ArrayList<String>();
+                        //jsonResultFromServer = new JSONArray(result);
+                        Log.i("Network JSON", "pingingServerFor_ItemIds, lets begin, shall we...");
+                        itemIdsFromServer = new ArrayList<ItemIDs>();
                         for(int i = 0; i < jsonResultFromServer.length(); i++)
                         {
-                            itemIdsFromServer.add(jsonResultFromServer.getJSONObject(i).getString("ItemId"));
+                            itemIdsFromServer.add(new ItemIDs(jsonResultFromServer.getJSONObject(i).getInt("id"),jsonResultFromServer.getJSONObject(i).getString("name")));
                         }
-                        ArrayAdapter<String> adapter = new ArrayAdapter<String>(ManagerActivity.this, android.R.layout.simple_spinner_dropdown_item, itemIdsFromServer);
+
+                        ArrayList<String> itemNames = new ArrayList<String>();
+                        for(int i = 0; i < itemIdsFromServer.size(); i++)
+                        {
+                            itemNames.add(itemIdsFromServer.get(i).getName());
+                            Log.i("BOOP", "BOOP" + itemIdsFromServer.get(i).getName());
+                        }
+
+                        ArrayAdapter<String> adapter = new ArrayAdapter<String>(ManagerActivity.this, android.R.layout.simple_spinner_dropdown_item, itemNames);
                         itemsSpinner.setAdapter(adapter);
 
                         break;
