@@ -44,7 +44,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     private Spinner itemsSpinner;
     private EditText countText;
 
-    private ArrayList<ItemIDs> itemIdsFromServer;
+    private ArrayList<String> itemIdsFromServer;
     private String currentItemID;
     private int numberOfResultsToRetrieve;
     private ArrayList<LatLng> allCurrentItemLocations;
@@ -92,10 +92,10 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         itemsSpinner = (Spinner) findViewById(R.id.spinner);
         itemsSpinner.setOnItemSelectedListener(this);
 
-        itemIdsFromServer = new ArrayList<ItemIDs>();
+        itemIdsFromServer = new ArrayList<String>();
         allCurrentItemLocations = new ArrayList<LatLng>();
 
-        currentItemID = "NONE";
+        currentItemID = "";
         numberOfResultsToRetrieve = 10;
 
         mapText = (TextView) findViewById(R.id.mapText);
@@ -161,7 +161,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
                 Log.i("Network Update", "Launching Refresh ");
                 //aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), "https://192.168.1.188:8080/smrttrackerserver-1.0.0-SNAPSHOT/hello?isDoomed=yes");
 
-                serverURL = "http://192.168.1.188:8080/TruckyTrackServerSide/TruckyTrackServlet?request=getitemids";
+                serverURL = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet?request=getitemids";
                 pingingServerFor = pingingServerFor_ItemIds;
                 aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
 
@@ -193,7 +193,8 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         mMap.addMarker(new MarkerOptions().position(new LatLng(userLocation.getLatitude(), userLocation.getLongitude())).title("You"));
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(userLocation.getLatitude(), userLocation.getLongitude()), 7));
         mMap.setOnCameraIdleListener(new mapScrolledListener());
-        updateMap(false);
+        retrieveLocations();
+        //updateMap(false);
     }
 
     private void updateMap(boolean clearPrevious)
@@ -216,33 +217,33 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
 
     private void retrieveLocations()
     {
-        /*
+
         pingingServerFor = pingingServerFor_Locations;
-        serverURL = "http://geo.dev.deveire.com/store/location?id=" + currentItemID + "&count=" + numberOfResultsToRetrieve;
+        serverURL = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet?request=getinitlocations&id=" + (currentItemID.split(" - ")[0]) + "&count=" + numberOfResultsToRetrieve;
         //lat and long are doubles, will cause issue? nope
         Log.i("Network Update", "Attempting to start download from onLocationChanged." + serverURL);
         aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
-        */
-        Log.i("Dropdown Update", "Dropdown select, Loading intial locations for " + currentItemID);
-        loadTestLocations(numberOfResultsToRetrieve);
+
+        Log.i("Dropdown Update", "Dropdown select, Loading intial locations for " + (currentItemID.split(" - ")[0]));
+        //loadTestLocations(numberOfResultsToRetrieve);
     }
 
     private void retrieveLocations(LatLng centreOfMap, double radiusInMetres)
     {
-        /*
+
         pingingServerFor = pingingServerFor_Extra_Locations;
-        serverURL = "http://geo.dev.deveire.com/store/location?id=" + currentItemID + "&CentreLat=" + centreOfMap.latitude + "&CentreLon=" + centreOfMap.longitude + "&radius=" + radiusInMetres;
+        serverURL = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet?request=getlocationswithin&id=" + (currentItemID.split(" - ")[0]) + "&lat=" + centreOfMap.latitude + "&lon=" + centreOfMap.longitude + "&radius=" + radiusInMetres;
         //lat and long are doubles, will cause issue? nope
         Log.i("Network Update", "Attempting to start download to retrieve locations." + serverURL);
         aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
-        */
-        Log.i("Dropdown Update", "Map Moved, Loading new locations for " + currentItemID + " from centre " + centreOfMap.toString() + " at radius " + radiusInMetres);
-        loadMoreTestLocations(centreOfMap, radiusInMetres);
+
+        Log.i("Dropdown Update", "Map Moved, Loading new locations for " + (currentItemID.split(" - ")[0]) + " from centre " + centreOfMap.toString() + " at radius " + radiusInMetres);
+        //loadMoreTestLocations(centreOfMap, radiusInMetres);
     }
 
     private void loadTestIDs()
     {
-        itemIdsFromServer = new ArrayList<ItemIDs>();
+        /*itemIdsFromServer = new ArrayList<ItemIDs>();
         itemIdsFromServer.add(new ItemIDs(1, "Truck 1"));
         itemIdsFromServer.add(new ItemIDs(2, "Truck 2"));
         itemIdsFromServer.add(new ItemIDs(3, "Trucky Trailer"));
@@ -259,13 +260,13 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         int currentIndexOfDropdown = 0;
         for (String aID : itemNames)
         {
-            if (aID.matches(currentItemID))
+            if (aID.matches(currentItemID.getName()))
             {
                itemsSpinner.setSelection(currentIndexOfDropdown);
                break;
             }
             currentIndexOfDropdown++;
-        }
+        }*/
     }
 
     private void loadTestLocations(int count)
@@ -344,7 +345,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
                 test.setLatitude(aloc.latitude);
                 test.setLongitude(aloc.longitude);
                 Location.distanceBetween(centre.latitude, centre.longitude, aloc.latitude, aloc.longitude, distanceBetween);
-                Log.i("LoadUpdate", "distancebetween point and centre is " + test.distanceTo(locCentre) + " against radius of " + radius );
+                Log.i("LoadUpdate", "distancebetween point and centre is " + test.distanceTo(locCentre) + " against radius of " + radius);
                 if (test.distanceTo(locCentre) < radius && !arrayContains(allCurrentItemLocations, aloc))
                 {
                     allCurrentItemLocations.add(aloc);
@@ -371,7 +372,11 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int pos, long id)
     {
-        currentItemID = (String) parent.getItemAtPosition(pos);
+        //[Get currently selected id from dropdown menu]
+        currentItemID = itemIdsFromServer.get(pos);
+        //TODO: replace ID, name system with single string consiting of "id - name"
+        //[/Get currently selected id from dropdown menu]
+
         Log.i("Dropdown Update", "Dropdown select, ItemID now equals " + parent.getItemAtPosition(pos));
         try
         {
@@ -389,6 +394,25 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     public void onNothingSelected(AdapterView<?> parent)
     {
 
+    }
+
+    private void selectItemOnStartup()
+    {
+        //[Get currently selected id from dropdown menu]
+        currentItemID = itemIdsFromServer.get(0);
+        //TODO: replace ID, name system with single string consiting of "id - name"
+        //[/Get currently selected id from dropdown menu]
+
+        try
+        {
+            numberOfResultsToRetrieve = Integer.getInteger(countText.getText().toString());
+        }
+        catch (Exception e)
+        {
+            numberOfResultsToRetrieve = 10;
+            countText.setText("" + numberOfResultsToRetrieve);
+        }
+        retrieveLocations();
     }
 
 
@@ -452,6 +476,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     @Override
     public void updateFromDownload(String result) {
         //intervalTextView.setText("Interval: " + result);
+        Log.i("Download Update", "\n Starting UpdateFromDownload \n \n");
         try
         {
             if(result != null)
@@ -462,31 +487,27 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
                     case pingingServerFor_ItemIds:
                         //jsonResultFromServer = new JSONArray(result);
                         Log.i("Network JSON", "pingingServerFor_ItemIds, lets begin, shall we...");
-                        itemIdsFromServer = new ArrayList<ItemIDs>();
+                        itemIdsFromServer = new ArrayList<String>();
                         for(int i = 0; i < jsonResultFromServer.length(); i++)
                         {
-                            itemIdsFromServer.add(new ItemIDs(jsonResultFromServer.getJSONObject(i).getInt("id"),jsonResultFromServer.getJSONObject(i).getString("name")));
+                            itemIdsFromServer.add(jsonResultFromServer.getJSONObject(i).getString("name"));
                         }
 
-                        ArrayList<String> itemNames = new ArrayList<String>();
-                        for(int i = 0; i < itemIdsFromServer.size(); i++)
-                        {
-                            itemNames.add(itemIdsFromServer.get(i).getName());
-                            Log.i("BOOP", "BOOP" + itemIdsFromServer.get(i).getName());
-                        }
 
-                        ArrayAdapter<String> adapter = new ArrayAdapter<String>(ManagerActivity.this, android.R.layout.simple_spinner_dropdown_item, itemNames);
+
+                        ArrayAdapter<String> adapter = new ArrayAdapter<String>(ManagerActivity.this, android.R.layout.simple_spinner_dropdown_item, itemIdsFromServer);
                         itemsSpinner.setAdapter(adapter);
 
                         break;
 
                     case pingingServerFor_Locations:
-                        jsonResultFromServer = new JSONArray(result);
+                        //jsonResultFromServer = new JSONArray(result);
                         allCurrentItemLocations = new ArrayList<LatLng>();
                         for(int i = 0; i < jsonResultFromServer.length(); i++)
                         {
-                            LatLng aloc = new LatLng(jsonResultFromServer.getJSONObject(i).getDouble("Lat"), jsonResultFromServer.getJSONObject(i).getDouble("Lon"));
+                            LatLng aloc = new LatLng(jsonResultFromServer.getJSONObject(i).getDouble("lat"), jsonResultFromServer.getJSONObject(i).getDouble("lon"));
                             allCurrentItemLocations.add(aloc);
+                            Log.i("Boop Test", "BOOP LOCATION LOADED" + aloc.toString());
                         }
 
                         Log.i("Location Update", "Recieved locations.");
@@ -496,11 +517,11 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
                         break;
 
                     case pingingServerFor_Extra_Locations:
-                        jsonResultFromServer = new JSONArray(result);
+                        //jsonResultFromServer = new JSONArray(result);
                         allCurrentItemLocations = new ArrayList<LatLng>();
                         for(int i = 0; i < jsonResultFromServer.length(); i++)
                         {
-                            LatLng aloc = new LatLng(jsonResultFromServer.getJSONObject(i).getDouble("Lat"), jsonResultFromServer.getJSONObject(i).getDouble("Lon"));
+                            LatLng aloc = new LatLng(jsonResultFromServer.getJSONObject(i).getDouble("lat"), jsonResultFromServer.getJSONObject(i).getDouble("lon"));
                             allCurrentItemLocations.add(aloc);
                         }
 
@@ -523,7 +544,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         }
         catch(JSONException e)
         {
-
+            Log.e("DownloadUpdate Error", "JSONEception: " + e);
         }
 
 

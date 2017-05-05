@@ -9,8 +9,8 @@ import android.util.Log;
 class ItemIDs
 {
 
-    int id;
-    String name;
+    private int id;
+    private String name;
 
     public ItemIDs()
     {
@@ -19,8 +19,8 @@ class ItemIDs
 
     public ItemIDs(int inID, String inName)
     {
-        if(!inName.contains("-")){
-            Log.e("ItemID Format Warning", "Name does not match format, name should be of format \"inID- Name\"");
+        if(!inName.contains(" - ")){
+            Log.e("ItemID Format Warning", "Name does not match format, name should be of format \"inID - Name\"");
         }
 
         id = inID;
@@ -45,8 +45,8 @@ class ItemIDs
     public void setName(String inName)
     {
         this.name = name;
-        if(!inName.contains("-")){
-            Log.e("ItemID Format Warning", "Name does not match format, name should be of format \"inID- Name\"");
+        if(!inName.contains(" - ")){
+            Log.e("ItemID Format Warning", "Name does not match format, name should be of format \"inID - Name\"");
         }
     }
 
