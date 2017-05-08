@@ -1,8 +1,10 @@
 package com.deveire.dev.truckytrack;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Geocoder;
 import android.location.Location;
@@ -19,6 +21,7 @@ import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.TextView;
+
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -39,6 +42,10 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 public class DriverActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.OnConnectionFailedListener, GoogleApiClient.ConnectionCallbacks, LocationListener, DownloadCallback<String>
 {
 
@@ -46,6 +53,10 @@ public class DriverActivity extends FragmentActivity implements OnMapReadyCallba
 
     private TextView mapText;
     private EditText nameEditText;
+
+    private SharedPreferences savedData;
+    private String itemName;
+    private int itemID;
 
     //[Network and periodic location update, Variables]
     private GoogleApiClient mGoogleApiClient;
@@ -82,12 +93,15 @@ public class DriverActivity extends FragmentActivity implements OnMapReadyCallba
         userLocation.setLatitude(0);
         userLocation.setLongitude(0);
 
-
+        savedData = this.getApplicationContext().getSharedPreferences("TruckyTrack SavedData", Context.MODE_PRIVATE);
+        itemName = savedData.getString("itemName", "Unknown");
+        itemID = savedData.getInt("itemID", 0);
+        nameEditText.setText(itemName);
 
         pingingServer = false;
 
         //aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), "https://192.168.1.188:8080/smrttrackerserver-1.0.0-SNAPSHOT/hello?isDoomed=yes");
-        serverURL = "http://geo.dev.deveire.com/store/keg/location?id=" + Settings.Secure.ANDROID_ID.toString() + "&name=" + "truck 1" + "&lat=" + 0000 + "&lon=" + 0000;
+        serverURL = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet?request=storelocation" + Settings.Secure.ANDROID_ID.toString() + "&name=" + itemName + "&lat=" + 0000 + "&lon=" + 0000;
         //0000,0000 is a location in the middle of the atlantic occean south of western africa and unlikely to contain a golf course.
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -153,8 +167,15 @@ public class DriverActivity extends FragmentActivity implements OnMapReadyCallba
 
     }
 
-
-
+    @Override
+    protected void onPause()
+    {
+        super.onPause();
+        SharedPreferences.Editor edit = savedData.edit();
+        edit.putString("itemName", nameEditText.getText().toString());
+        edit.putInt("itemID", itemID);
+        edit.commit();
+    }
 
     /**
      * Manipulates the map once available.
@@ -251,7 +272,7 @@ public class DriverActivity extends FragmentActivity implements OnMapReadyCallba
             {
                 userName = nameEditText.getText().toString();
             }
-            serverURL = "http://geo.dev.deveire.com/store/location?id=" + Settings.Secure.ANDROID_ID.toString() + "&name=" + userName + "&lat=" + locationReceivedFromLocationUpdates.getLatitude() + "&lon=" + locationReceivedFromLocationUpdates.getLongitude();
+            serverURL = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet?request=storelocation" + "&id=" + itemID + "&name=" + itemName.replace(' ', '_') + "&lat=" + locationReceivedFromLocationUpdates.getLatitude() + "&lon=" + locationReceivedFromLocationUpdates.getLongitude();
             //lat and long are doubles, will cause issue? nope
             Log.i("Network Update", "Attempting to start download from onLocationChanged. " + serverURL);
             aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
@@ -316,6 +337,19 @@ public class DriverActivity extends FragmentActivity implements OnMapReadyCallba
         {
             Log.i("Network UPDATE", "Non null result received." );
             mapText.setText("We're good");
+            if(itemID == 0)//if app has no assigned id, receive id from servlet.
+            {
+                try
+                {
+                    JSONArray jin = new JSONArray(result);
+                    JSONObject obj = jin.getJSONObject(0);
+                    itemID = obj.getInt("id");
+                } catch (JSONException e)
+                {
+                    Log.e("JSON ERROR", "Error retrieving id from servlet with exception: " + e.toString());
+                }
+            }
+
 
         }
         else

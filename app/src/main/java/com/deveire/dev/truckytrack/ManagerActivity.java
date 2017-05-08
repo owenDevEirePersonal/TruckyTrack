@@ -271,7 +271,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
 
     private void loadTestLocations(int count)
     {
-        double firstLocationLat = 52.663585;
+        /*double firstLocationLat = 52.663585;
         double firstLocationLng= -8.636135;
         allCurrentItemLocations = new ArrayList<LatLng>();
         switch (currentItemID)
@@ -327,7 +327,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
 
         Log.i("Update Map", "Update Map from Intial location loading");
         updateMap(true);
-
+        */
     }
 
     private void loadMoreTestLocations(LatLng centre, double radius)
@@ -610,6 +610,11 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
             b.setLatitude(viewportCentre.latitude);
             b.setLongitude(viewportCentre.longitude);
             double viewportRadius = a.distanceTo(b);
+
+            //[JURY RIGGED irregular distances between long and lat, solution]
+            //TODO: Replace this system.
+            viewportRadius = Math.max(Math.abs(a.getLatitude() - b.getLatitude()), Math.abs(a.getLongitude() - b.getLongitude()));
+            //[JURY RIGGED irregular distances between long and lat, solution]
 
             retrieveLocations(viewportCentre, viewportRadius);
         }
