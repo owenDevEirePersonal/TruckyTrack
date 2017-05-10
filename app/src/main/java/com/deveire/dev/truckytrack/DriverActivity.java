@@ -19,6 +19,8 @@ import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -46,13 +48,15 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-public class DriverActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.OnConnectionFailedListener, GoogleApiClient.ConnectionCallbacks, LocationListener, DownloadCallback<String>
+public class DriverActivity extends FragmentActivity implements GoogleApiClient.OnConnectionFailedListener, GoogleApiClient.ConnectionCallbacks, LocationListener, DownloadCallback<String>
 {
 
     private GoogleMap mMap;
 
     private TextView mapText;
     private EditText nameEditText;
+    private EditText kegIDEditText;
+    private Button scanKegButton;
 
     private SharedPreferences savedData;
     private String itemName;
@@ -81,13 +85,22 @@ public class DriverActivity extends FragmentActivity implements OnMapReadyCallba
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_driver);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
+
 
 
         mapText = (TextView) findViewById(R.id.mapText);
         nameEditText = (EditText) findViewById(R.id.nameEditText);
+        kegIDEditText = (EditText) findViewById(R.id.kegIDEditText);
+        scanKegButton = (Button) findViewById(R.id.scanKegButton);
+
+        scanKegButton.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                scanKeg();
+            }
+        });
 
         userLocation = new Location("Truck");
         userLocation.setLatitude(0);
@@ -177,39 +190,25 @@ public class DriverActivity extends FragmentActivity implements OnMapReadyCallba
         edit.commit();
     }
 
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
-    @Override
-    public void onMapReady(GoogleMap googleMap)
+    private void scanKeg()
     {
-        mMap = googleMap;
+        String kegUUID = "ERROR";
+        if(!kegIDEditText.getText().toString().matches(""))
+        {
+            kegUUID = kegIDEditText.getText().toString();
 
-        // Add a marker in Sydney and move the camera
-        /*LatLng sydney = new LatLng(-34, 151);
-        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));*/
-
-        mMap.addMarker(new MarkerOptions().position(new LatLng(userLocation.getLatitude(), userLocation.getLongitude())).title("Your Truck"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(userLocation.getLatitude(), userLocation.getLongitude()), 6));
+            serverURL = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet?request=storekeg" + "&id=" + itemID + "&kegid=" + kegUUID + "&lat=" + locationReceivedFromLocationUpdates.getLatitude() + "&lon=" + locationReceivedFromLocationUpdates.getLongitude();
+            //lat and long are doubles, will cause issue? nope
+            Log.i("Network Update", "Attempting to start download from scanKeg. " + serverURL);
+            aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
+        }
+        else
+        {
+            Log.e("kegScan Error", "invalid uuid entered.");
+        }
     }
 
-    private void updateMap()
-    {
-        mMap.clear();
-        mMap.addMarker(new MarkerOptions().position(new LatLng(userLocation.getLatitude(), userLocation.getLongitude())).title(nameEditText.getText().toString()));
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(userLocation.getLatitude(), userLocation.getLongitude())));
-    }
-
-
-
-
+//**********[Location Update and server pinging Code]
     @Override
     public void onConnectionFailed(ConnectionResult result) {
         // An unresolvable error has occurred and a connection to Google APIs
@@ -278,8 +277,6 @@ public class DriverActivity extends FragmentActivity implements OnMapReadyCallba
             aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
 
 
-            updateMap();
-
             //startDownload();
         }
         else
@@ -337,7 +334,7 @@ public class DriverActivity extends FragmentActivity implements OnMapReadyCallba
         {
             Log.i("Network UPDATE", "Non null result received." );
             mapText.setText("We're good");
-            if(itemID == 0)//if app has no assigned id, receive id from servlet.
+            if(itemID == 0 && !result.matches(""))//if app has no assigned id, receive id from servlet.
             {
                 try
                 {
@@ -427,5 +424,5 @@ public class DriverActivity extends FragmentActivity implements OnMapReadyCallba
 
         }
     }
-//**********[Location Update and server pinging Code]
+//**********[/Location Update and server pinging Code]
 }

@@ -620,3 +620,22 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+
+
+ */
