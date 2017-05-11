@@ -49,6 +49,8 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     private int numberOfResultsToRetrieve;
     private ArrayList<LatLng> allCurrentItemLocations;
 
+    private ArrayList<String> allCurrentKegIDs;
+
     private Location userLocation;
 
     //[Network and periodic location update, Variables]
@@ -65,6 +67,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     private final int pingingServerFor_ItemIds = 1;
     private final int pingingServerFor_Locations = 2;
     private final int pingingServerFor_Extra_Locations = 3;
+    private final int pingingServerFor_Keg_Last_Locations = 4;
     private final int pingingServerFor_Nothing = 0;
 
 
@@ -204,10 +207,20 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
             mMap.clear();
         }
 
+        int i = 0;
         for (LatLng aloc: allCurrentItemLocations)
         {
-            mMap.addMarker(new MarkerOptions().position(aloc).title("Truck 1"));
-            Log.i("Map Update", "Placing Marker at " + aloc.toString());
+            if(currentItemID.matches("Current Keg Locations"))
+            {
+                mMap.addMarker(new MarkerOptions().position(aloc).title(allCurrentKegIDs.get(i)));
+                Log.i("Map Update", "Placing Keg Marker at " + aloc.toString());
+            }
+            else
+            {
+                mMap.addMarker(new MarkerOptions().position(aloc).title("Truck 1"));
+                Log.i("Map Update", "Placing Marker at " + aloc.toString()  + "\n");
+            }
+            i++;
         }
         mMap.addMarker(new MarkerOptions().position(new LatLng(userLocation.getLatitude(), userLocation.getLongitude())).title("You"));
 
@@ -217,11 +230,10 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
 
     private void retrieveLocations()
     {
-
         pingingServerFor = pingingServerFor_Locations;
         serverURL = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet?request=getinitlocations&id=" + (currentItemID.split(" - ")[0]) + "&count=" + numberOfResultsToRetrieve;
         //lat and long are doubles, will cause issue? nope
-        Log.i("Network Update", "Attempting to start download from onLocationChanged." + serverURL);
+        Log.i("Network Update", "Attempting to start download from retrievelocations." + serverURL);
         aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
 
         Log.i("Dropdown Update", "Dropdown select, Loading intial locations for " + (currentItemID.split(" - ")[0]));
@@ -230,15 +242,26 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
 
     private void retrieveLocations(LatLng centreOfMap, double radiusInMetres)
     {
-
         pingingServerFor = pingingServerFor_Extra_Locations;
         serverURL = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet?request=getlocationswithin&id=" + (currentItemID.split(" - ")[0]) + "&lat=" + centreOfMap.latitude + "&lon=" + centreOfMap.longitude + "&radius=" + radiusInMetres;
         //lat and long are doubles, will cause issue? nope
-        Log.i("Network Update", "Attempting to start download to retrieve locations." + serverURL);
+        Log.i("Network Update", "Attempting to start download to retrieve locations(centreOfMap, radiusInMetres)." + serverURL);
         aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
 
         Log.i("Dropdown Update", "Map Moved, Loading new locations for " + (currentItemID.split(" - ")[0]) + " from centre " + centreOfMap.toString() + " at radius " + radiusInMetres);
         //loadMoreTestLocations(centreOfMap, radiusInMetres);
+    }
+
+    private void retrieveKegLastLocations()
+    {
+        pingingServerFor = pingingServerFor_Keg_Last_Locations;
+        serverURL = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet?request=getkegslastlocations";
+        //lat and long are doubles, will cause issue? nope
+        Log.i("Network Update", "Attempting to start download from retrieveKegLastLocations. " + serverURL);
+        aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
+
+        Log.i("Dropdown Update", "Dropdown select, Loading retrieveKegLastLocations");
+        //loadTestLocations(numberOfResultsToRetrieve);
     }
 
     private void loadTestIDs()
@@ -374,20 +397,27 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     {
         //[Get currently selected id from dropdown menu]
         currentItemID = itemIdsFromServer.get(pos);
-        //TODO: replace ID, name system with single string consiting of "id - name"
         //[/Get currently selected id from dropdown menu]
 
-        Log.i("Dropdown Update", "Dropdown select, ItemID now equals " + parent.getItemAtPosition(pos));
-        try
+        //if item selected is not the last item(all kegs) then behave normally
+        if(pos != itemIdsFromServer.size() - 1)
         {
-            numberOfResultsToRetrieve = Integer.getInteger(countText.getText().toString());
+            Log.i("Dropdown Update", "Dropdown select, ItemID now equals " + parent.getItemAtPosition(pos));
+            try
+            {
+                numberOfResultsToRetrieve = Integer.getInteger(countText.getText().toString());
+            } catch (Exception e)
+            {
+                numberOfResultsToRetrieve = 10;
+                countText.setText("" + numberOfResultsToRetrieve);
+            }
+            retrieveLocations();
         }
-        catch (Exception e)
+        else
         {
-            numberOfResultsToRetrieve = 10;
-            countText.setText("" + numberOfResultsToRetrieve);
+            Log.i("Dropdown Update", "Dropdown select, ItemID now equals All Kegs");
+            retrieveKegLastLocations();
         }
-        retrieveLocations();
     }
 
     @Override
@@ -485,7 +515,6 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
                 switch (pingingServerFor)
                 {
                     case pingingServerFor_ItemIds:
-                        //jsonResultFromServer = new JSONArray(result);
                         Log.i("Network JSON", "pingingServerFor_ItemIds, lets begin, shall we...");
                         itemIdsFromServer = new ArrayList<String>();
                         for(int i = 0; i < jsonResultFromServer.length(); i++)
@@ -493,7 +522,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
                             itemIdsFromServer.add(jsonResultFromServer.getJSONObject(i).getString("name"));
                         }
 
-
+                        itemIdsFromServer.add("Current Keg Locations");
 
                         ArrayAdapter<String> adapter = new ArrayAdapter<String>(ManagerActivity.this, android.R.layout.simple_spinner_dropdown_item, itemIdsFromServer);
                         itemsSpinner.setAdapter(adapter);
@@ -501,15 +530,14 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
                         break;
 
                     case pingingServerFor_Locations:
-                        //jsonResultFromServer = new JSONArray(result);
                         allCurrentItemLocations = new ArrayList<LatLng>();
+
                         for(int i = 0; i < jsonResultFromServer.length(); i++)
                         {
                             LatLng aloc = new LatLng(jsonResultFromServer.getJSONObject(i).getDouble("lat"), jsonResultFromServer.getJSONObject(i).getDouble("lon"));
                             allCurrentItemLocations.add(aloc);
-                            Log.i("Boop Test", "BOOP LOCATION LOADED" + aloc.toString());
+                            Log.i("Boop Test", "BOOP LOCATION LOADED " + aloc.toString());
                         }
-
                         Log.i("Location Update", "Recieved locations.");
                         updateMap(true);
                         mapText.setText("Receving Locations");
@@ -517,8 +545,8 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
                         break;
 
                     case pingingServerFor_Extra_Locations:
-                        //jsonResultFromServer = new JSONArray(result);
                         allCurrentItemLocations = new ArrayList<LatLng>();
+
                         for(int i = 0; i < jsonResultFromServer.length(); i++)
                         {
                             LatLng aloc = new LatLng(jsonResultFromServer.getJSONObject(i).getDouble("lat"), jsonResultFromServer.getJSONObject(i).getDouble("lon"));
@@ -530,6 +558,24 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
                         mapText.setText("Receving Locations");
 
                         break;
+
+                    case pingingServerFor_Keg_Last_Locations:
+                        allCurrentItemLocations = new ArrayList<LatLng>();
+                        allCurrentKegIDs = new ArrayList<String>();
+
+                        for(int i = 0; i < jsonResultFromServer.length(); i++)
+                        {
+                            LatLng aloc = new LatLng(jsonResultFromServer.getJSONObject(i).getDouble("lat"), jsonResultFromServer.getJSONObject(i).getDouble("lon"));
+                            allCurrentItemLocations.add(aloc);
+                            allCurrentKegIDs.add(jsonResultFromServer.getJSONObject(i).getString("kegID"));
+                            Log.i("Boop Test", "BOOP KEG LOCATION LOADED " + aloc.toString());
+                        }
+                        Log.i("Location Update", "Recieved locations.");
+                        updateMap(true);
+                        mapText.setText("Receving Keg Locations");
+
+                        break;
+
 
                     default: Log.e("Network Update", "PingingServerFor value does not match any known type"); break;
                 }
@@ -593,7 +639,6 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         }
     }
 
-
 //**********[/Location Update and server pinging Code]
 
     class mapScrolledListener implements GoogleMap.OnCameraIdleListener
@@ -616,7 +661,11 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
             viewportRadius = Math.max(Math.abs(a.getLatitude() - b.getLatitude()), Math.abs(a.getLongitude() - b.getLongitude()));
             //[JURY RIGGED irregular distances between long and lat, solution]
 
-            retrieveLocations(viewportCentre, viewportRadius);
+            //if the user is looking at the current last known locations of kegs then do nothing, as ALL keg locations are retrieve when the user selects that option. else retrieve the locations within viewport.
+            if(!currentItemID.matches("Current Keg Locations"))
+            {
+                retrieveLocations(viewportCentre, viewportRadius);
+            }
         }
     }
 }
