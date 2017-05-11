@@ -162,13 +162,9 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
             try
             {
                 Log.i("Network Update", "Launching Refresh ");
-                //aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), "https://192.168.1.188:8080/smrttrackerserver-1.0.0-SNAPSHOT/hello?isDoomed=yes");
-
                 serverURL = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet?request=getitemids";
                 pingingServerFor = pingingServerFor_ItemIds;
                 aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
-
-                //loadTestIDs();
             }
             finally
             {
@@ -237,7 +233,6 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
 
         Log.i("Dropdown Update", "Dropdown select, Loading intial locations for " + (currentItemID.split(" - ")[0]));
-        //loadTestLocations(numberOfResultsToRetrieve);
     }
 
     private void retrieveLocations(LatLng centreOfMap, double radiusInMetres)
@@ -249,7 +244,6 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
 
         Log.i("Dropdown Update", "Map Moved, Loading new locations for " + (currentItemID.split(" - ")[0]) + " from centre " + centreOfMap.toString() + " at radius " + radiusInMetres);
-        //loadMoreTestLocations(centreOfMap, radiusInMetres);
     }
 
     private void retrieveKegLastLocations()
@@ -261,123 +255,6 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
 
         Log.i("Dropdown Update", "Dropdown select, Loading retrieveKegLastLocations");
-        //loadTestLocations(numberOfResultsToRetrieve);
-    }
-
-    private void loadTestIDs()
-    {
-        /*itemIdsFromServer = new ArrayList<ItemIDs>();
-        itemIdsFromServer.add(new ItemIDs(1, "Truck 1"));
-        itemIdsFromServer.add(new ItemIDs(2, "Truck 2"));
-        itemIdsFromServer.add(new ItemIDs(3, "Trucky Trailer"));
-
-        ArrayList<String> itemNames = new ArrayList<String>();
-        for(int i = 0; i < itemIdsFromServer.size(); i++)
-        {
-            itemNames.add(itemIdsFromServer.get(i).getName());
-        }
-
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(ManagerActivity.this, android.R.layout.simple_spinner_dropdown_item, itemNames);
-        itemsSpinner.setAdapter(adapter);
-
-        int currentIndexOfDropdown = 0;
-        for (String aID : itemNames)
-        {
-            if (aID.matches(currentItemID.getName()))
-            {
-               itemsSpinner.setSelection(currentIndexOfDropdown);
-               break;
-            }
-            currentIndexOfDropdown++;
-        }*/
-    }
-
-    private void loadTestLocations(int count)
-    {
-        /*double firstLocationLat = 52.663585;
-        double firstLocationLng= -8.636135;
-        allCurrentItemLocations = new ArrayList<LatLng>();
-        switch (currentItemID)
-        {
-            case "Truck 1":
-                for (int i = 1; i <= count; i++)
-                {
-                    allCurrentItemLocations.add(new LatLng(firstLocationLat + 0.1 * i, firstLocationLng + 0.1 * i));
-                }
-                testStoreOfLocations = new ArrayList<LatLng>();
-                testStoreOfLocations = (ArrayList<LatLng>) allCurrentItemLocations.clone();
-                LatLng lastLoc = allCurrentItemLocations.get(allCurrentItemLocations.size() - 1);
-                testStoreOfLocations.add(new LatLng(lastLoc.latitude + 1.1, lastLoc.longitude + 0.1));
-                testStoreOfLocations.add(new LatLng(lastLoc.latitude + 2.2, lastLoc.longitude + 0.2));
-                testStoreOfLocations.add(new LatLng(lastLoc.latitude + 3.3, lastLoc.longitude + 0.3));
-                testStoreOfLocations.add(new LatLng(lastLoc.latitude + 4.4, lastLoc.longitude + 0.4));
-                testStoreOfLocations.add(new LatLng(lastLoc.latitude + 5.5, lastLoc.longitude + 0.5));
-                testStoreOfLocations.add(new LatLng(lastLoc.latitude + 6.6, lastLoc.longitude + 0.6));
-            break;
-
-            case "Truck 2":
-                for (int i = 1; i <= count; i++)
-                {
-                    allCurrentItemLocations.add(new LatLng(firstLocationLat - 0.1 * i, firstLocationLng + 0.1 * i));
-                }
-                testStoreOfLocations = new ArrayList<LatLng>();
-                testStoreOfLocations = (ArrayList<LatLng>) allCurrentItemLocations.clone();
-                LatLng lastLoc2 = allCurrentItemLocations.get(allCurrentItemLocations.size() - 1);
-                testStoreOfLocations.add(new LatLng(lastLoc2.latitude - 1.1, lastLoc2.longitude + 0.1));
-                testStoreOfLocations.add(new LatLng(lastLoc2.latitude - 2.2, lastLoc2.longitude + 0.2));
-                testStoreOfLocations.add(new LatLng(lastLoc2.latitude - 3.3, lastLoc2.longitude + 0.3));
-                testStoreOfLocations.add(new LatLng(lastLoc2.latitude - 4.4, lastLoc2.longitude + 0.4));
-                testStoreOfLocations.add(new LatLng(lastLoc2.latitude - 5.5, lastLoc2.longitude + 0.5));
-                testStoreOfLocations.add(new LatLng(lastLoc2.latitude - 6.6, lastLoc2.longitude + 0.6));
-            break;
-
-            case "Trucky Trailer":
-                for (int i = 1; i <= count; i++)
-                {
-                    allCurrentItemLocations.add(new LatLng(firstLocationLat - 0.1 * i, firstLocationLng - 0.1 * i));
-                }
-                testStoreOfLocations = new ArrayList<LatLng>();
-                testStoreOfLocations = (ArrayList<LatLng>) allCurrentItemLocations.clone();
-                LatLng lastLoc3 = allCurrentItemLocations.get(allCurrentItemLocations.size() - 1);
-                testStoreOfLocations.add(new LatLng(lastLoc3.latitude - 1.1, lastLoc3.longitude - 0.1));
-                testStoreOfLocations.add(new LatLng(lastLoc3.latitude - 2.2, lastLoc3.longitude - 0.2));
-                testStoreOfLocations.add(new LatLng(lastLoc3.latitude - 3.3, lastLoc3.longitude - 0.3));
-                testStoreOfLocations.add(new LatLng(lastLoc3.latitude - 4.4, lastLoc3.longitude - 0.4));
-                testStoreOfLocations.add(new LatLng(lastLoc3.latitude - 5.5, lastLoc3.longitude - 0.5));
-                testStoreOfLocations.add(new LatLng(lastLoc3.latitude - 6.6, lastLoc3.longitude - 0.6));
-                break;
-        }
-
-        Log.i("Update Map", "Update Map from Intial location loading");
-        updateMap(true);
-        */
-    }
-
-    private void loadMoreTestLocations(LatLng centre, double radius)
-    {
-        if(allCurrentItemLocations.size() > 0)
-        {
-            Location locCentre = new Location("");
-            locCentre.setLatitude(centre.latitude);
-            locCentre.setLongitude(centre.longitude);
-
-            float[] distanceBetween = new float[1];
-            for (LatLng aloc : testStoreOfLocations)
-            {
-                Location test = new Location("");
-                test.setLatitude(aloc.latitude);
-                test.setLongitude(aloc.longitude);
-                Location.distanceBetween(centre.latitude, centre.longitude, aloc.latitude, aloc.longitude, distanceBetween);
-                Log.i("LoadUpdate", "distancebetween point and centre is " + test.distanceTo(locCentre) + " against radius of " + radius);
-                if (test.distanceTo(locCentre) < radius && !arrayContains(allCurrentItemLocations, aloc))
-                {
-                    allCurrentItemLocations.add(aloc);
-                }
-            }
-            Log.i("Update Map", "Update Map from More location loading");
-            updateMap(false);
-        }
-
     }
 
     private boolean arrayContains(ArrayList<LatLng> array, LatLng bLatLng)
@@ -685,6 +562,10 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
 
 
 /*
+
+
+
+
 
 
  */
