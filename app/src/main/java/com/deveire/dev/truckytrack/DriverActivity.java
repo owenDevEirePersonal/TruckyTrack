@@ -1,6 +1,14 @@
 package com.deveire.dev.truckytrack;
 
-import android.app.Activity;
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothGattCallback;
+import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattService;
+import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
@@ -37,16 +45,14 @@ import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResult;
 import com.google.android.gms.location.LocationSettingsStates;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
-import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.OnMapReadyCallback;
-import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import java.util.List;
+import java.util.UUID;
 
 public class DriverActivity extends FragmentActivity implements GoogleApiClient.OnConnectionFailedListener, GoogleApiClient.ConnectionCallbacks, LocationListener, DownloadCallback<String>
 {
@@ -57,10 +63,27 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private EditText nameEditText;
     private EditText kegIDEditText;
     private Button scanKegButton;
+    private Button clearStoredAddressButton;
 
     private SharedPreferences savedData;
     private String itemName;
     private int itemID;
+
+    private boolean hasState;
+
+    //[BLE Variables]
+    private String storedScannerAddress;
+    private final static String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb"; //UUID for changing notify or not
+    private int REQUEST_ENABLE_BT;
+    private BluetoothManager btManager;
+    private BluetoothAdapter btAdapter;
+    private BluetoothAdapter.LeScanCallback leScanCallback;
+
+    private BluetoothDevice btDevice;
+
+    private BluetoothGatt btGatt;
+    private BluetoothGattCallback btLeGattCallback;
+    //[/BLE Variables]
 
     //[Network and periodic location update, Variables]
     private GoogleApiClient mGoogleApiClient;
@@ -101,6 +124,22 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                 scanKeg();
             }
         });
+
+        clearStoredAddressButton = (Button) findViewById(R.id.clearStoredAddressButton);
+        clearStoredAddressButton.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                storedScannerAddress = null;
+                if(btAdapter != null)
+                {
+                    btAdapter.startLeScan(leScanCallback);
+                }
+            }
+        });
+
+        hasState = true;
 
         userLocation = new Location("Truck");
         userLocation.setLatitude(0);
@@ -176,18 +215,51 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
         geoCoderServiceResultReciever = new DriverActivity.AddressResultReceiver(new Handler());
 
+        setupBluetoothScanner();
+
         restoreSavedValues(savedInstanceState);
 
     }
 
     @Override
+    protected void onResume()
+    {
+        super.onResume();
+        hasState = true;
+    }
+
+    @Override
     protected void onPause()
     {
+        hasState = false;
+        if(aNetworkFragment != null)
+        {
+            aNetworkFragment.cancelDownload();
+        }
         super.onPause();
+    }
+
+    @Override
+    protected void onStop()
+    {
+        hasState = false;
+
         SharedPreferences.Editor edit = savedData.edit();
         edit.putString("itemName", nameEditText.getText().toString());
         edit.putInt("itemID", itemID);
+
+        edit.putString("ScannerMacAddress", storedScannerAddress);
+
+
         edit.commit();
+
+        if(btGatt != null)
+        {
+            btGatt.disconnect();
+            btGatt.close();
+        }
+
+        super.onStop();
     }
 
     private void scanKeg()
@@ -207,6 +279,106 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             Log.e("kegScan Error", "invalid uuid entered.");
         }
     }
+
+//++++++++++[Bluetooth BLE Code]
+    private void setupBluetoothScanner()
+    {
+        REQUEST_ENABLE_BT = 1;
+
+        btManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+
+        btAdapter = btManager.getAdapter();
+        if(btAdapter != null && !btAdapter.isEnabled())
+        {
+            Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
+        }
+
+        leScanCallback = new deviceDiscoveredCallback();
+        storedScannerAddress = savedData.getString("ScannerMacAddress", "None");
+        if(btAdapter != null)
+        {
+            if(storedScannerAddress.matches("None"))
+            {
+                btAdapter.startLeScan(leScanCallback);
+            }
+            else
+            {
+                btAdapter.getRemoteDevice(storedScannerAddress);
+            }
+        }
+
+        btLeGattCallback = new scannerGattCallBack();
+    }
+
+    private class deviceDiscoveredCallback implements BluetoothAdapter.LeScanCallback
+    {
+        @Override
+        public void onLeScan(BluetoothDevice device, int rssi, byte[] scanRecord)
+        {
+            //if(is Device I'm looking for)
+            {
+                btDevice = device;
+                storedScannerAddress = btDevice.getAddress();
+                btAdapter.stopLeScan(leScanCallback);
+                btGatt = btDevice.connectGatt(getApplicationContext(), false, btLeGattCallback);
+
+            }
+        }
+    }
+
+    private class scannerGattCallBack extends BluetoothGattCallback
+    {
+        @Override
+        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState)
+        {
+            super.onConnectionStateChange(gatt, status, newState);
+
+            if(newState == BluetoothProfile.STATE_CONNECTED)
+            {
+                btGatt.discoverServices();
+            }
+        }
+
+        @Override
+        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic)
+        {
+            super.onCharacteristicChanged(gatt, characteristic);
+
+            //Insert get characteristic logic to retrieve the uuid scanned here.
+        }
+
+        @Override
+        public void onServicesDiscovered(BluetoothGatt gatt, int status)
+        {
+            super.onServicesDiscovered(gatt, status);
+            List<BluetoothGattService> services = btGatt.getServices();
+            for (BluetoothGattService service: services)
+            {
+                List<BluetoothGattCharacteristic> characteristics = service.getCharacteristics();
+                for (BluetoothGattCharacteristic aCharacteristic: characteristics)
+                {
+                    //if(aCharacteristic == TheCharacteristicWeWant)
+                    {
+                        for (BluetoothGattDescriptor descriptor : aCharacteristic.getDescriptors())
+                        {
+                            if(descriptor.getUuid() == UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG))
+                            {
+                                descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
+                                btGatt.writeDescriptor(descriptor);
+                                break;
+                            }
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+//++++++++++[/Bluetooth BLE CODE]
+
+
 
 //**********[Location Update and server pinging Code]
     @Override
@@ -274,7 +446,11 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             serverURL = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet?request=storelocation" + "&id=" + itemID + "&name=" + itemName.replace(' ', '_') + "&lat=" + locationReceivedFromLocationUpdates.getLatitude() + "&lon=" + locationReceivedFromLocationUpdates.getLongitude();
             //lat and long are doubles, will cause issue? nope
             Log.i("Network Update", "Attempting to start download from onLocationChanged. " + serverURL);
-            aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
+
+            if(hasState)//if the activity is currently not paused/stopped
+            {
+                aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
+            }
 
 
             //startDownload();
