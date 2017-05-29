@@ -71,6 +71,8 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     private final int pingingServerFor_Nothing = 0;
 
 
+    //private final String serverIPAddress = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet";
+    private final String serverIPAddress = "http://api.eirpin.com/api/TTServlet";
     private String serverURL;
     private NetworkFragment aNetworkFragment;
     //[/Network and periodic location update, Variables]
@@ -138,6 +140,16 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     }
 
     @Override
+    protected void onPause()
+    {
+        if(aNetworkFragment != null)
+        {
+            aNetworkFragment.cancelDownload();
+        }
+        super.onPause();
+    }
+
+    @Override
     protected void onDestroy()
     {
         super.onDestroy();
@@ -162,7 +174,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
             try
             {
                 Log.i("Network Update", "Launching Refresh ");
-                serverURL = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet?request=getitemids";
+                serverURL = serverIPAddress + "?request=getitemids";
                 pingingServerFor = pingingServerFor_ItemIds;
                 aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
             }
@@ -206,7 +218,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         int i = 0;
         for (LatLng aloc: allCurrentItemLocations)
         {
-            if(currentItemID.matches("Current Keg Locations"))
+            if(currentItemID.matches("Current Keg Locations") || currentItemID.matches("09-05-2017 Latest") || currentItemID.matches("09-05-2017 All") || currentItemID.matches("10-05-2017 Latest") || currentItemID.matches("10-05-2017 All") || currentItemID.matches("11-05-2017 Latest") || currentItemID.matches("11-05-2017 All"))
             {
                 mMap.addMarker(new MarkerOptions().position(aloc).title(allCurrentKegIDs.get(i)));
                 Log.i("Map Update", "Placing Keg Marker at " + aloc.toString());
@@ -227,7 +239,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     private void retrieveLocations()
     {
         pingingServerFor = pingingServerFor_Locations;
-        serverURL = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet?request=getinitlocations&id=" + (currentItemID.split(" - ")[0]) + "&count=" + numberOfResultsToRetrieve;
+        serverURL = serverIPAddress + "?request=getinitlocations&id=" + (currentItemID.split(" - ")[0]) + "&count=" + numberOfResultsToRetrieve;
         //lat and long are doubles, will cause issue? nope
         Log.i("Network Update", "Attempting to start download from retrievelocations." + serverURL);
         aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
@@ -238,7 +250,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     private void retrieveLocations(LatLng centreOfMap, double radiusInMetres)
     {
         pingingServerFor = pingingServerFor_Extra_Locations;
-        serverURL = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet?request=getlocationswithin&id=" + (currentItemID.split(" - ")[0]) + "&lat=" + centreOfMap.latitude + "&lon=" + centreOfMap.longitude + "&radius=" + radiusInMetres;
+        serverURL = serverIPAddress + "?request=getlocationswithin&id=" + (currentItemID.split(" - ")[0]) + "&lat=" + centreOfMap.latitude + "&lon=" + centreOfMap.longitude + "&radius=" + radiusInMetres;
         //lat and long are doubles, will cause issue? nope
         Log.i("Network Update", "Attempting to start download to retrieve locations(centreOfMap, radiusInMetres)." + serverURL);
         aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
@@ -249,7 +261,29 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     private void retrieveKegLastLocations()
     {
         pingingServerFor = pingingServerFor_Keg_Last_Locations;
-        serverURL = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet?request=getkegslastlocations";
+        serverURL = serverIPAddress + "?request=getkegslastlocations";
+        //lat and long are doubles, will cause issue? nope
+        Log.i("Network Update", "Attempting to start download from retrieveKegLastLocations. " + serverURL);
+        aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
+
+        Log.i("Dropdown Update", "Dropdown select, Loading retrieveKegLastLocations");
+    }
+
+    private void retrieveKegLastLocationsOnDate(String inDate)
+    {
+        pingingServerFor = pingingServerFor_Keg_Last_Locations;
+        serverURL = serverIPAddress + "?request=getkegslastlocationsonadate&date=" + inDate;
+        //lat and long are doubles, will cause issue? nope
+        Log.i("Network Update", "Attempting to start download from retrieveKegLastLocations. " + serverURL);
+        aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
+
+        Log.i("Dropdown Update", "Dropdown select, Loading retrieveKegLastLocations");
+    }
+
+    private void retrieveKegAllLocationsOnDate(String inDate)
+    {
+        pingingServerFor = pingingServerFor_Keg_Last_Locations;
+        serverURL = serverIPAddress + "?request=getkegslastlocationsonadate&date=" + inDate;
         //lat and long are doubles, will cause issue? nope
         Log.i("Network Update", "Attempting to start download from retrieveKegLastLocations. " + serverURL);
         aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
@@ -276,8 +310,43 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         currentItemID = itemIdsFromServer.get(pos);
         //[/Get currently selected id from dropdown menu]
 
-        //if item selected is not the last item(all kegs) then behave normally
-        if(pos != itemIdsFromServer.size() - 1)
+        //if item selected is not the last item(all kegs) or 2nd last then behave normally
+        if(pos == itemIdsFromServer.size() - 1)
+        {
+            Log.i("Dropdown Update", "Dropdown select, ItemID now equals All Kegs");
+            retrieveKegLastLocations();
+        }
+        else if(pos == itemIdsFromServer.size() - 2)
+        {
+            Log.i("Dropdown Update", "Dropdown select, ItemID now equals 2017-05-10");
+            retrieveKegLastLocationsOnDate("2017-05-11");
+        }
+        else if(pos == itemIdsFromServer.size() - 3)
+        {
+            Log.i("Dropdown Update", "Dropdown select, ItemID now equals 2017-05-10");
+            retrieveKegAllLocationsOnDate("2017-05-11");
+        }
+        else if(pos == itemIdsFromServer.size() - 4)
+        {
+            Log.i("Dropdown Update", "Dropdown select, ItemID now equals 2017-05-10");
+            retrieveKegLastLocationsOnDate("2017-05-10");
+        }
+        else if(pos == itemIdsFromServer.size() - 5)
+        {
+            Log.i("Dropdown Update", "Dropdown select, ItemID now equals 2017-05-10");
+            retrieveKegAllLocationsOnDate("2017-05-10");
+        }
+        else if(pos == itemIdsFromServer.size() - 6)
+        {
+            Log.i("Dropdown Update", "Dropdown select, ItemID now equals 2017-05-10");
+            retrieveKegLastLocationsOnDate("2017-05-09");
+        }
+        else if(pos == itemIdsFromServer.size() - 7)
+        {
+            Log.i("Dropdown Update", "Dropdown select, ItemID now equals 2017-05-10");
+            retrieveKegAllLocationsOnDate("2017-05-09");
+        }
+        else
         {
             Log.i("Dropdown Update", "Dropdown select, ItemID now equals " + parent.getItemAtPosition(pos));
             try
@@ -290,11 +359,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
             }
             retrieveLocations();
         }
-        else
-        {
-            Log.i("Dropdown Update", "Dropdown select, ItemID now equals All Kegs");
-            retrieveKegLastLocations();
-        }
+
     }
 
     @Override
@@ -399,7 +464,14 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
                             itemIdsFromServer.add(jsonResultFromServer.getJSONObject(i).getString("name"));
                         }
 
+                        itemIdsFromServer.add("09-05-2017 Latest");
+                        itemIdsFromServer.add("09-05-2017 All");
+                        itemIdsFromServer.add("10-05-2017 Latest");
+                        itemIdsFromServer.add("10-05-2017 All");
+                        itemIdsFromServer.add("11-05-2017 Latest");
+                        itemIdsFromServer.add("11-05-2017 All");
                         itemIdsFromServer.add("Current Keg Locations");
+
 
                         ArrayAdapter<String> adapter = new ArrayAdapter<String>(ManagerActivity.this, android.R.layout.simple_spinner_dropdown_item, itemIdsFromServer);
                         itemsSpinner.setAdapter(adapter);

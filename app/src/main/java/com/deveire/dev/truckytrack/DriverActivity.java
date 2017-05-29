@@ -97,6 +97,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private final String SAVED_LOCATION_KEY = "79";
 
     private boolean pingingServer;
+    //private final String serverIPAddress = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet";
+    private final String serverIPAddress = "http://api.eirpin.com/api/TTServlet";
     private String serverURL;
     private NetworkFragment aNetworkFragment;
     //[/Network and periodic location update, Variables]
@@ -153,8 +155,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         pingingServer = false;
 
         //aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), "https://192.168.1.188:8080/smrttrackerserver-1.0.0-SNAPSHOT/hello?isDoomed=yes");
-        serverURL = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet?request=storelocation" + Settings.Secure.ANDROID_ID.toString() + "&name=" + itemName + "&lat=" + 0000 + "&lon=" + 0000;
-        //0000,0000 is a location in the middle of the atlantic occean south of western africa and unlikely to contain a golf course.
+        serverURL = serverIPAddress + "?request=storelocation" + Settings.Secure.ANDROID_ID.toString() + "&name=" + itemName + "&lat=" + 0000 + "&lon=" + 0000;
+
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
@@ -269,7 +271,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         {
             kegUUID = kegIDEditText.getText().toString();
 
-            serverURL = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet?request=storekeg" + "&id=" + itemID + "&kegid=" + kegUUID + "&lat=" + locationReceivedFromLocationUpdates.getLatitude() + "&lon=" + locationReceivedFromLocationUpdates.getLongitude();
+            serverURL = serverIPAddress + "?request=storekeg" + "&id=" + itemID + "&kegid=" + kegUUID + "&lat=" + locationReceivedFromLocationUpdates.getLatitude() + "&lon=" + locationReceivedFromLocationUpdates.getLongitude();
             //lat and long are doubles, will cause issue? nope
             Log.i("Network Update", "Attempting to start download from scanKeg. " + serverURL);
             aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
@@ -443,7 +445,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             {
                 userName = nameEditText.getText().toString();
             }
-            serverURL = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet?request=storelocation" + "&id=" + itemID + "&name=" + itemName.replace(' ', '_') + "&lat=" + locationReceivedFromLocationUpdates.getLatitude() + "&lon=" + locationReceivedFromLocationUpdates.getLongitude();
+            serverURL = serverIPAddress + "?request=storelocation" + "&id=" + itemID + "&name=" + itemName.replace(' ', '_') + "&lat=" + locationReceivedFromLocationUpdates.getLatitude() + "&lon=" + locationReceivedFromLocationUpdates.getLongitude();
             //lat and long are doubles, will cause issue? nope
             Log.i("Network Update", "Attempting to start download from onLocationChanged. " + serverURL);
 
