@@ -63,7 +63,9 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private EditText nameEditText;
     private EditText kegIDEditText;
     private Button scanKegButton;
-    private Button clearStoredAddressButton;
+    private Button pairReaderButton;
+
+    final static int PAIR_READER_REQUESTCODE = 9;
 
     private SharedPreferences savedData;
     private String itemName;
@@ -127,17 +129,19 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             }
         });
 
-        clearStoredAddressButton = (Button) findViewById(R.id.clearStoredAddressButton);
-        clearStoredAddressButton.setOnClickListener(new View.OnClickListener()
+        pairReaderButton = (Button) findViewById(R.id.pairReaderButton);
+        pairReaderButton.setOnClickListener(new View.OnClickListener()
         {
             @Override
             public void onClick(View v)
             {
                 storedScannerAddress = null;
-                if(btAdapter != null)
+                Intent pairReaderIntent = new Intent(getApplicationContext(), PairingActivity.class);
+                startActivityForResult(pairReaderIntent, PAIR_READER_REQUESTCODE);
+                /*if(btAdapter != null)
                 {
                     btAdapter.startLeScan(leScanCallback);
-                }
+                }*/
             }
         });
 
@@ -151,6 +155,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         itemName = savedData.getString("itemName", "Unknown");
         itemID = savedData.getInt("itemID", 0);
         nameEditText.setText(itemName);
+
 
         pingingServer = false;
 
@@ -264,6 +269,23 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         super.onStop();
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        // Check which request we're responding to
+        Log.i("PairingResult", "Call received to onActivity Result with reqyestCode: " + requestCode);
+        if (requestCode == PAIR_READER_REQUESTCODE) {
+            Log.i("PairingResult", "Received Pairing requestCode");
+            // Make sure the request was successful
+            if (resultCode == RESULT_OK) {
+                Log.i("PairingResult", "Recieved Result Ok");
+                storedScannerAddress = data.getStringExtra("BTMacAddress");
+                Log.i("Pairing Result", "Recieved scannerMacAddress of : " + storedScannerAddress);
+
+
+            }
+        }
+    }
+
     private void scanKeg()
     {
         String kegUUID = "ERROR";
@@ -296,13 +318,14 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
         }
 
-        leScanCallback = new deviceDiscoveredCallback();
+
         storedScannerAddress = savedData.getString("ScannerMacAddress", "None");
+        Log.i("Pairing Update", "Retrieved from storage, scannerMacAddress of : " + storedScannerAddress);
         if(btAdapter != null)
         {
             if(storedScannerAddress.matches("None"))
             {
-                btAdapter.startLeScan(leScanCallback);
+                //btAdapter.startLeScan(leScanCallback);
             }
             else
             {
@@ -311,22 +334,6 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         }
 
         btLeGattCallback = new scannerGattCallBack();
-    }
-
-    private class deviceDiscoveredCallback implements BluetoothAdapter.LeScanCallback
-    {
-        @Override
-        public void onLeScan(BluetoothDevice device, int rssi, byte[] scanRecord)
-        {
-            //if(is Device I'm looking for)
-            {
-                btDevice = device;
-                storedScannerAddress = btDevice.getAddress();
-                btAdapter.stopLeScan(leScanCallback);
-                btGatt = btDevice.connectGatt(getApplicationContext(), false, btLeGattCallback);
-
-            }
-        }
     }
 
     private class scannerGattCallBack extends BluetoothGattCallback
@@ -465,12 +472,6 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data)
-    {
-        super.onActivityResult(requestCode, resultCode, data);
-        //receive request changed.
-    }
 
     @Override
     public void onSaveInstanceState(Bundle savedState)

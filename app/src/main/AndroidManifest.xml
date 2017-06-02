@@ -49,7 +49,8 @@
             android:name=".DriverActivity"
             android:label="@string/title_activity_driver">
         </activity>
-
+        <activity android:name=".PairingActivity">
+        </activity>
     </application>
 
 </manifest>

@@ -57,16 +57,16 @@
         map:layout_constraintTop_toBottomOf="@+id/mapText"/>
 
     <Button
-        android:id="@+id/clearStoredAddressButton"
-        android:layout_width="130dp"
-        android:layout_height="76dp"
-        android:layout_marginTop="11dp"
-        android:text="Clear Stored Address"
-        map:layout_constraintTop_toBottomOf="@+id/scanKegButton"
+        android:id="@+id/pairReaderButton"
+        android:layout_width="117dp"
+        android:layout_height="62dp"
         android:layout_marginLeft="0dp"
+        android:layout_marginRight="0dp"
+        android:layout_marginTop="11dp"
+        android:text="Pair Reader"
+        map:layout_constraintHorizontal_bias="0.0"
         map:layout_constraintLeft_toLeftOf="@+id/scanKegButton"
         map:layout_constraintRight_toLeftOf="@+id/kegIDEditText"
-        android:layout_marginRight="0dp"
-        map:layout_constraintHorizontal_bias="0.0"/>
+        map:layout_constraintTop_toBottomOf="@+id/scanKegButton"/>
 </android.support.constraint.ConstraintLayout>
 
