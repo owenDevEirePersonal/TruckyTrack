@@ -3,14 +3,12 @@ package com.deveire.dev.truckytrack;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothGattCallback;
-import android.bluetooth.BluetoothGattCharacteristic;
-import android.bluetooth.BluetoothGattDescriptor;
-import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -26,11 +24,15 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
+import android.text.Editable;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
+
+
+import com.acs.bluetooth.*;
 
 
 import com.google.android.gms.common.ConnectionResult;
@@ -51,8 +53,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.List;
-import java.util.UUID;
+import java.io.UnsupportedEncodingException;
+import java.util.Locale;
 
 public class DriverActivity extends FragmentActivity implements GoogleApiClient.OnConnectionFailedListener, GoogleApiClient.ConnectionCallbacks, LocationListener, DownloadCallback<String>
 {
@@ -84,8 +86,23 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private BluetoothDevice btDevice;
 
     private BluetoothGatt btGatt;
-    private BluetoothGattCallback btLeGattCallback;
+    private BluetoothReaderGattCallback btLeGattCallback;
     //[/BLE Variables]
+
+    //[Scanner Variables]
+
+    /* Default master key. */
+    private static final String DEFAULT_1255_MASTER_KEY = "ACR1255U-J1 Auth";
+
+    private static final byte[] AUTO_POLLING_START = { (byte) 0xE0, 0x00, 0x00, 0x40, 0x01 };
+    private static final byte[] AUTO_POLLING_STOP = { (byte) 0xE0, 0x00, 0x00, 0x40, 0x00 };
+    private static final byte[] GET_UID_APDU_COMMAND = new byte[] { (byte)0xFF, (byte)0xCA, (byte)0x00, (byte)0x00, (byte)0x00 };
+
+    private int scannerConnectionState = BluetoothReader.STATE_DISCONNECTED;
+    private BluetoothReaderManager scannerManager;
+    private BluetoothReader scannerReader;
+
+    //[/Scanner Variables]
 
     //[Network and periodic location update, Variables]
     private GoogleApiClient mGoogleApiClient;
@@ -119,6 +136,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         nameEditText = (EditText) findViewById(R.id.nameEditText);
         kegIDEditText = (EditText) findViewById(R.id.kegIDEditText);
         scanKegButton = (Button) findViewById(R.id.scanKegButton);
+
 
         scanKegButton.setOnClickListener(new View.OnClickListener()
         {
@@ -233,6 +251,12 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     {
         super.onResume();
         hasState = true;
+
+        final IntentFilter intentFilter = new IntentFilter();
+
+        /* Start to monitor bond state change */
+        intentFilter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
+        registerReceiver(mBroadcastReceiver, intentFilter);
     }
 
     @Override
@@ -243,7 +267,17 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         {
             aNetworkFragment.cancelDownload();
         }
+
+        /* Stop to monitor bond state change */
+        unregisterReceiver(mBroadcastReceiver);
+
+        /* Disconnect Bluetooth reader */
+        disconnectReader();
+
+
+
         super.onPause();
+        //finish();
     }
 
     @Override
@@ -333,20 +367,659 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             }
         }
 
-        btLeGattCallback = new scannerGattCallBack();
+        btLeGattCallback = new BluetoothReaderGattCallback();
+
+        btLeGattCallback.setOnConnectionStateChangeListener(new BluetoothReaderGattCallback.OnConnectionStateChangeListener()
+        {
+            @Override
+            public void onConnectionStateChange(final BluetoothGatt inGatt, final int state, final int newState)
+            {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run()
+                    {
+                        if (state != BluetoothGatt.GATT_SUCCESS)
+                        {
+                                    /*
+                                     * Show the message on fail to
+                                     * connect/disconnect.
+                                     */
+                            scannerConnectionState = BluetoothReader.STATE_DISCONNECTED;
+
+                            if (newState == BluetoothReader.STATE_CONNECTED) {
+                                Log.e("ScannerConnection", "Bt Reader Failled to connect");
+                            } else if (newState == BluetoothReader.STATE_DISCONNECTED) {
+                                Log.e("ScannerConnection", "Bt Reader Failed To Disconnect");
+
+                            }
+
+
+                            return;
+                        }
+
+                        scannerConnectionState = newState;
+                        Log.i("ScannerConnection", "Bt Reader ConnectedChanged to : " + scannerConnectionState);
+
+
+                        if (newState == BluetoothProfile.STATE_CONNECTED) {
+                                    /* Detect the connected reader. */
+                            if (scannerManager != null) {
+                                scannerManager.detectReader(inGatt, btLeGattCallback);
+                            }
+                        } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+                            scannerReader = null;
+                                    /*
+                                     * Release resources occupied by Bluetooth
+                                     * GATT client.
+                                     */
+                            if (btGatt != null) {
+                                btGatt.close();
+                                btGatt = null;
+                            }
+                        }
+                    }
+                });
+            }
+        });
+
+        /* Initialize mBluetoothReaderManager. */
+        scannerManager = new BluetoothReaderManager();
+
+        /* Register BluetoothReaderManager's listeners */
+        scannerManager.setOnReaderDetectionListener(new BluetoothReaderManager.OnReaderDetectionListener() {
+
+                    @Override
+                    public void onReaderDetection(BluetoothReader reader) {
+
+
+                        if (reader instanceof Acr3901us1Reader) {
+                            /* The connected reader is ACR3901U-S1 reader. */
+                            Log.v("Reader Connection", "On Acr3901us1Reader Detected.");
+                        } else if (reader instanceof Acr1255uj1Reader) {
+                            /* The connected reader is ACR1255U-J1 reader. */
+                            Log.v("Reader Connection", "On Acr1255uj1Reader Detected.");
+                        } else {
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    Log.e("Reader Connection", "The device is not supported!");
+
+                                    /* Disconnect Bluetooth reader */
+                                    Log.e("Reader Coonection", "Disconnect reader!!!");
+                                    disconnectReader();
+                                    scannerConnectionState = BluetoothReader.STATE_DISCONNECTED;
+                                }
+                            });
+                            return;
+                        }
+
+                        scannerReader = reader;
+                        setListener(reader);
+                        activateReader(reader);
+                    }
+                });
+
+        /* Connect the reader. */
+        connectReader();
     }
 
-    private class scannerGattCallBack extends BluetoothGattCallback
+    private void setListener(BluetoothReader reader) {
+        /* Update status change listener */
+        if (scannerReader instanceof Acr3901us1Reader) {
+            ((Acr3901us1Reader) scannerReader)
+                    .setOnBatteryStatusChangeListener(new Acr3901us1Reader.OnBatteryStatusChangeListener() {
+
+                        @Override
+                        public void onBatteryStatusChange(
+                                BluetoothReader bluetoothReader,
+                                final int batteryStatus) {
+
+                            Log.i("Scanner Connection", "mBatteryStatusListener data: " + batteryStatus);
+
+                        }
+
+                    });
+        } else if (scannerReader instanceof Acr1255uj1Reader) {
+            ((Acr1255uj1Reader) scannerReader)
+                    .setOnBatteryLevelChangeListener(new Acr1255uj1Reader.OnBatteryLevelChangeListener() {
+
+                        @Override
+                        public void onBatteryLevelChange(
+                                BluetoothReader bluetoothReader,
+                                final int batteryLevel) {
+
+                            Log.i("Scanner Connection", "mBatteryLevelListener data: " + batteryLevel);
+
+                        }
+
+                    });
+        }
+
+        scannerReader.setOnCardStatusChangeListener(new BluetoothReader.OnCardStatusChangeListener() {
+
+                    @Override
+                    public void onCardStatusChange(
+                            BluetoothReader bluetoothReader, final int sta) {
+
+                        Log.i("Scanner Connection", "mCardStatusListener sta: " + sta);
+
+                    }
+
+                });
+
+        /* Wait for authentication completed. */
+        scannerReader.setOnAuthenticationCompleteListener(new BluetoothReader.OnAuthenticationCompleteListener() {
+
+                    @Override
+                    public void onAuthenticationComplete(BluetoothReader bluetoothReader, final int errorCode)
+                    {
+
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (errorCode == BluetoothReader.ERROR_SUCCESS) {
+                                    Log.i("Scanner Connection", "Succesess");
+                                    //mAuthentication.setEnabled(false);
+                                } else {
+
+                                    Log.i("Scanner Connection", "Fail");
+                                }
+                            }
+                        });
+                                if (errorCode == BluetoothReader.ERROR_SUCCESS)
+                                {
+                                    Log.i("Scanner Connection", "Authentication Success! Starting Polling ");
+                                    startPolling();
+
+                                }
+                                else
+                                {
+                                    Log.i("Scanner Connection", "Authentication Failed!");
+                                }
+                    }
+
+                });
+
+        /* Wait for response APDU. */
+        scannerReader.setOnResponseApduAvailableListener(new BluetoothReader.OnResponseApduAvailableListener()
+        {
+
+                    @Override
+                    public void onResponseApduAvailable(BluetoothReader bluetoothReader, final byte[] apdu, final int errorCode)
+                    {
+                        Log.i("Scanner Connection", "Apdu: " + apdu + " has failed with error: " + errorCode);
+                        if(errorCode == BluetoothReader.ERROR_SUCCESS)
+                        {
+                            //TODO: IMPLEMENT RESULT RECIEVER FOR APDU
+                        }
+                    }
+
+        });
+
+
+
+
+
+
+
+        /* Handle on battery status available. */
+        if (scannerReader instanceof Acr3901us1Reader)
+        {
+            ((Acr3901us1Reader) scannerReader).setOnBatteryStatusAvailableListener(new Acr3901us1Reader.OnBatteryStatusAvailableListener()
+            {
+                        @Override
+                        public void onBatteryStatusAvailable(BluetoothReader bluetoothReader, final int batteryStatus, int status)
+                        {
+                            Log.i("Scanner Connection", "Battery Status String: " + batteryStatus);
+                        }
+            });
+        }
+
+        /* Handle on slot status available. */
+        scannerReader.setOnCardStatusAvailableListener(new BluetoothReader.OnCardStatusAvailableListener()
+        {
+             @Override
+             public void onCardStatusAvailable(BluetoothReader bluetoothReader, final int cardStatus, final int errorCode)
+             {
+                 if (errorCode != BluetoothReader.ERROR_SUCCESS)
+                 {
+                     Log.i("Scanner Connection", "CardStatusError : " + errorCode );
+                 }
+                 else
+                 {
+                     Log.i("Scanner Connection", "Card Status : " + (cardStatus));
+                     if(cardStatus == BluetoothReader.CARD_STATUS_PRESENT)
+                     {
+
+                     }
+                 }
+             }
+        });
+
+        scannerReader.setOnEnableNotificationCompleteListener(new BluetoothReader.OnEnableNotificationCompleteListener()
+        {
+
+                    @Override
+                    public void onEnableNotificationComplete(BluetoothReader bluetoothReader, final int result)
+                    {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (result != BluetoothGatt.GATT_SUCCESS) {
+                                    /* Fail */
+                                    Log.i("Scanner Connection", "The device is unable to set notification!");
+                                }
+                                else
+                                {
+                                    Log.i("Scanner Connection", "The device is ready to use!");
+                                    scannerAuthenticate();
+                                }
+                            }
+                        });
+                    }
+        });
+
+
+    }
+
+    private final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            BluetoothAdapter bluetoothAdapter = null;
+            BluetoothManager bluetoothManager = null;
+            final String action = intent.getAction();
+
+            if (!(scannerReader instanceof Acr3901us1Reader)) {
+                /* Only ACR3901U-S1 require bonding. */
+                return;
+            }
+
+            if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action))
+            {
+                Log.i("Scanner Connection", "ACTION_BOND_STATE_CHANGED");
+
+                /* Get bond (pairing) state */
+                if (scannerManager == null) {
+                    Log.w("Scanner Connection", "Unable to initialize BluetoothReaderManager.");
+                    return;
+                }
+
+                bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+                if (bluetoothManager == null) {
+                    Log.w("Scanner Connection", "Unable to initialize BluetoothManager.");
+                    return;
+                }
+
+                bluetoothAdapter = bluetoothManager.getAdapter();
+                if (bluetoothAdapter == null) {
+                    Log.w("Scanner Connection", "Unable to initialize BluetoothAdapter.");
+                    return;
+                }
+
+                final BluetoothDevice device = bluetoothAdapter
+                        .getRemoteDevice(storedScannerAddress);
+
+                if (device == null) {
+                    Log.e("Scanner Connection", "Device not found, likely no address stored.");
+                    return;
+                }
+
+                final int bondState = device.getBondState();
+
+                // TODO: remove log message
+                Log.i("", "BroadcastReceiver - getBondState. state = "
+                        + bondState);
+
+                /* Enable notification */
+                if (bondState == BluetoothDevice.BOND_BONDED) {
+                    if (scannerReader != null) {
+                        scannerReader.enableNotification(true);
+                    }
+                }
+
+
+            }
+        }
+
+    };
+
+    private boolean connectReader() {
+        BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+        if (bluetoothManager == null) {
+            Log.w("Scanner Connection", "Unable to initialize BluetoothManager.");
+            scannerConnectionState = BluetoothReader.STATE_DISCONNECTED;
+            return false;
+        }
+
+        BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
+        if (bluetoothAdapter == null) {
+            Log.w("Scanner Connection", "Unable to obtain a BluetoothAdapter.");
+            scannerConnectionState = BluetoothReader.STATE_DISCONNECTED;
+            return false;
+        }
+
+        /*
+         * Connect Device.
+         */
+        /* Clear old GATT connection. */
+        if (btGatt != null) {
+            Log.i("Scanner Connection", "Clear old GATT connection");
+            btGatt.disconnect();
+            btGatt.close();
+            btGatt = null;
+        }
+        else
+        {
+            Log.i("Scanner Connection", "old GATT connection already clear");
+        }
+
+        /* Create a new connection. */
+        BluetoothDevice device = null;
+
+        if(!storedScannerAddress.matches("None"))
+        {
+            device = bluetoothAdapter.getRemoteDevice(storedScannerAddress);
+        }
+
+        if (device == null) {
+            Log.e("Scanner Connection", "Device not found. Unable to connect.");
+            return false;
+        }
+
+        /* Connect to GATT server. */
+        scannerConnectionState = BluetoothReader.STATE_CONNECTING;
+        btGatt = device.connectGatt(this, false, btLeGattCallback);
+        return true;
+    }
+
+    /* Disconnects an established connection. */
+    private void disconnectReader() {
+        if (btGatt == null) {
+            scannerConnectionState = BluetoothReader.STATE_DISCONNECTED;
+            return;
+        }
+        scannerConnectionState = BluetoothReader.STATE_DISCONNECTING;
+        btGatt.disconnect();
+        Log.i("Scanner Connection", "Disconnected from scanner");
+    }
+
+    /* Start the process to enable the reader's notifications. */
+    private void activateReader(BluetoothReader reader) {
+        if (reader == null) {
+            return;
+        }
+
+        if (reader instanceof Acr3901us1Reader) {
+            /* Start pairing to the reader. */
+            ((Acr3901us1Reader) scannerReader).startBonding();
+        } else if (scannerReader instanceof Acr1255uj1Reader) {
+            /* Enable notification. */
+            scannerReader.enableNotification(true);
+        }
+    }
+
+    private void scannerAuthenticate()
     {
+        if (scannerReader == null) {
+            Log.e("Scanner Connection", "card_reader_not_ready");
+            return;
+        }
+
+                /* Retrieve master key from edit box. */
+        byte masterKey[] = null;
+
+        try
+        {
+            masterKey = getEditTextinHexBytes(toHexString(DEFAULT_1255_MASTER_KEY.getBytes("UTF-8")));
+        }
+        catch (Exception e)
+        {
+            Log.e("Scanner Connection", "UnsupportedEncodingException :" + e.toString());
+            return;
+        }
+                    /* Start authentication. */
+        Log.i("Scanner Connection", "Authenticating with key: " + masterKey);
+        if (!scannerReader.authenticate(masterKey))
+        {
+            Log.e("Scanner Connection", "Authenticate Error: card_reader_not_ready");
+        }
+        else
+        {
+
+            Log.i("Scanner Connection", "Authenticating...");
+        }
+
+    }
+
+    /* Start polling card. */
+    private void startPolling()
+    {
+        if (scannerReader == null)
+        {
+
+            Log.e("Scanner Connection", "Polling Error, unable to start polling, reader not found");
+            return;
+        }
+        if (!scannerReader.transmitEscapeCommand(AUTO_POLLING_START))
+        {
+            Log.e("Scanner Connection", "Polling Error, unable to start polling");
+        }
+    }
+
+    /* Stop polling card. */
+    private void stopPolling()
+        {
+        if (scannerReader == null) {
+            Log.e("Scanner Connection", "Polling Stop Error, unable to stop polling, reader not found");;
+            return;
+        }
+        if (!scannerReader.transmitEscapeCommand(AUTO_POLLING_STOP)) {
+            Log.e("Scanner Connection", "Polling Stop Error, unable to stop polling");
+        }
+    }
+
+    private void transmitApdu()
+    {
+        /* Check for detected reader. */
+        if (scannerReader == null)
+        {
+            Log.e("Scanner Connection", "APDU Transmit Error, scanner not found");
+            return;
+        }
+
+                /* Retrieve APDU command from edit box. */
+        byte apduCommand[] = GET_UID_APDU_COMMAND;
+
+        if (apduCommand != null && apduCommand.length > 0)
+        {
+
+                    /* Transmit APDU command. */
+            if (!scannerReader.transmitApdu(apduCommand))
+            {
+                Log.e("Scanner Connection", "APDU Transmit Error, Card not ready");
+            }
+        }
+        else
+        {
+            Log.e("Scanner Connection", "APDU Transmit Error, Character Format Error");
+        }
+    }
+
+    private String toHexString(byte[] array)
+    {
+
+        String bufferString = "";
+
+        if (array != null) {
+            for (int i = 0; i < array.length; i++) {
+                String hexChar = Integer.toHexString(array[i] & 0xFF);
+                if (hexChar.length() == 1) {
+                    hexChar = "0" + hexChar;
+                }
+                bufferString += hexChar.toUpperCase(Locale.US) + " ";
+            }
+        }
+        return bufferString;
+    }
+
+    private byte[] getEditTextinHexBytes(String key)
+    {
+        String rawdata = key;
+
+
+        Log.i("Scanner Connection", "gettingHexBytes with rawData: " + rawdata);
+
+        if (rawdata == null || rawdata.isEmpty()) {
+
+            return null;
+        }
+
+        String command = rawdata.replace(" ", "").replace("\n", "");
+
+        Log.i("Scanner Connection", "gettingHexBytes with command: " + command);
+
+        if (command.isEmpty() || command.length() % 2 != 0 || isHexNumber(command) == false)
+        {
+            return null;
+        }
+
+        return hexString2Bytes(command);
+    }
+
+    private byte[] hexString2Bytes(String string) {
+        Log.i("Converting Key", "hexString in :" + string);
+        if (string == null)
+            throw new NullPointerException("string was null");
+
+        int len = string.length();
+
+        if (len == 0)
+            return new byte[0];
+        if (len % 2 == 1)
+            throw new IllegalArgumentException(
+                    "string length should be an even number");
+
+        byte[] ret = new byte[len / 2];
+        byte[] tmp = string.getBytes();
+
+        for (int i = 0; i < len; i += 2) {
+            if (!isHexNumber(tmp[i]) || !isHexNumber(tmp[i + 1])) {
+                throw new NumberFormatException(
+                        "string contained invalid value");
+            }
+            ret[i / 2] = uniteBytes(tmp[i], tmp[i + 1]);
+        }
+        return ret;
+    }
+
+    private static byte uniteBytes(byte src0, byte src1) {
+        byte _b0 = Byte.decode("0x" + new String(new byte[] { src0 }))
+                .byteValue();
+        _b0 = (byte) (_b0 << 4);
+        byte _b1 = Byte.decode("0x" + new String(new byte[] { src1 }))
+                .byteValue();
+        byte ret = (byte) (_b0 ^ _b1);
+        return ret;
+    }
+
+    private boolean isHexNumber(String string) {
+        if (string == null)
+            throw new NullPointerException("string was null");
+
+        boolean flag = true;
+
+        for (int i = 0; i < string.length(); i++) {
+            char cc = string.charAt(i);
+            if (!isHexNumber((byte) cc)) {
+                flag = false;
+                break;
+            }
+        }
+        return flag;
+    }
+
+    private boolean isHexNumber(byte value) {
+        if (!(value >= '0' && value <= '9') && !(value >= 'A' && value <= 'F')
+                && !(value >= 'a' && value <= 'f')) {
+            return false;
+        }
+        return true;
+    }
+
+    /* Get the Error string. */
+    private String getErrorString(int errorCode) {
+        if (errorCode == BluetoothReader.ERROR_SUCCESS) {
+            return "";
+        } else if (errorCode == BluetoothReader.ERROR_INVALID_CHECKSUM) {
+            return "The checksum is invalid.";
+        } else if (errorCode == BluetoothReader.ERROR_INVALID_DATA_LENGTH) {
+            return "The data length is invalid.";
+        } else if (errorCode == BluetoothReader.ERROR_INVALID_COMMAND) {
+            return "The command is invalid.";
+        } else if (errorCode == BluetoothReader.ERROR_UNKNOWN_COMMAND_ID) {
+            return "The command ID is unknown.";
+        } else if (errorCode == BluetoothReader.ERROR_CARD_OPERATION) {
+            return "The card operation failed.";
+        } else if (errorCode == BluetoothReader.ERROR_AUTHENTICATION_REQUIRED) {
+            return "Authentication is required.";
+        } else if (errorCode == BluetoothReader.ERROR_LOW_BATTERY) {
+            return "The battery is low.";
+        } else if (errorCode == BluetoothReader.ERROR_CHARACTERISTIC_NOT_FOUND) {
+            return "Error characteristic is not found.";
+        } else if (errorCode == BluetoothReader.ERROR_WRITE_DATA) {
+            return "Write command to reader is failed.";
+        } else if (errorCode == BluetoothReader.ERROR_TIMEOUT) {
+            return "Timeout.";
+        } else if (errorCode == BluetoothReader.ERROR_AUTHENTICATION_FAILED) {
+            return "Authentication is failed.";
+        } else if (errorCode == BluetoothReader.ERROR_UNDEFINED) {
+            return "Undefined error.";
+        } else if (errorCode == BluetoothReader.ERROR_INVALID_DATA) {
+            return "Received data error.";
+        } else if (errorCode == BluetoothReader.ERROR_COMMAND_FAILED) {
+            return "The command failed.";
+        }
+        return "Unknown error.";
+    }
+
+    /*private class scannerGattCallBack extends BluetoothGattCallback
+    {
+
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState)
         {
             super.onConnectionStateChange(gatt, status, newState);
 
-            if(newState == BluetoothProfile.STATE_CONNECTED)
-            {
-                btGatt.discoverServices();
-            }
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run()
+                {
+                    if (state != BluetoothGatt.GATT_SUCCESS)
+                    {
+                                     *
+                                     * Show the message on fail to
+                                     * connect/disconnect.
+                                     *
+                        mConnectState = BluetoothReader.STATE_DISCONNECTED;
+
+                        if (newState == BluetoothReader.STATE_CONNECTED) {
+                            Log.e("ScannerConnection", "Bt Reader Failled to connect");
+                        } else if (newState == BluetoothReader.STATE_DISCONNECTED) {
+                            Log.e("ScannerConnection", "Bt Reader Failed To Disconnect");
+
+                        }
+
+
+                        return;
+                    }
+
+                    updateConnectionState(newState);
+
+                    scannerSetup();
+                }
+            });
+
         }
 
         @Override
@@ -383,10 +1056,9 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                 }
             }
         }
-    }
+    }*/
 
 //++++++++++[/Bluetooth BLE CODE]
-
 
 
 //**********[Location Update and server pinging Code]
