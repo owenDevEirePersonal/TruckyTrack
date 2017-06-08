@@ -17,6 +17,7 @@ import android.location.Location;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.ResultReceiver;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
@@ -55,6 +56,8 @@ import org.json.JSONObject;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Locale;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class DriverActivity extends FragmentActivity implements GoogleApiClient.OnConnectionFailedListener, GoogleApiClient.ConnectionCallbacks, LocationListener, DownloadCallback<String>
 {
@@ -96,11 +99,13 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
     private static final byte[] AUTO_POLLING_START = { (byte) 0xE0, 0x00, 0x00, 0x40, 0x01 };
     private static final byte[] AUTO_POLLING_STOP = { (byte) 0xE0, 0x00, 0x00, 0x40, 0x00 };
-    private static final byte[] GET_UID_APDU_COMMAND = new byte[] { (byte)0xFF, (byte)0xCA, (byte)0x00, (byte)0x00, (byte)0x00 };
+    private static final byte[] GET_UID_APDU_COMMAND = {(byte)0xFF , (byte)0xCA, (byte)0x00, (byte)0x00, (byte)0x00};
 
     private int scannerConnectionState = BluetoothReader.STATE_DISCONNECTED;
     private BluetoothReaderManager scannerManager;
     private BluetoothReader scannerReader;
+
+
 
     //[/Scanner Variables]
 
@@ -143,7 +148,9 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             @Override
             public void onClick(View v)
             {
-                scanKeg();
+                //scanKeg();
+                //Log.i("Scanner Connection", "current card status = " + currentCardStatus);
+                transmitApdu();
             }
         });
 
@@ -495,13 +502,34 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                     });
         }
 
+        //THIS METHOD DOES NOT DETECT CHANGES TO BluetoothReader.CARD_STATUS_POWERED FOR SOME UNGODLY REASON
         scannerReader.setOnCardStatusChangeListener(new BluetoothReader.OnCardStatusChangeListener() {
+
 
                     @Override
                     public void onCardStatusChange(
-                            BluetoothReader bluetoothReader, final int sta) {
+                            BluetoothReader bluetoothReader, final int cardStatus) {
 
-                        Log.i("Scanner Connection", "mCardStatusListener sta: " + sta);
+                        Log.i("Scanner Connection", "Card Status changed to : " + cardStatus);
+
+                        if(cardStatus == BluetoothReader.CARD_STATUS_PRESENT)
+                        {
+                            Log.i("Scanner Connection", "about to transmit APDU : " + cardStatus);
+                            //try
+                            {
+                                new Timer().schedule(new TimerTask() {
+                                    @Override
+                                    public void run() {
+                                        transmitApdu();
+                                    }
+                                }, 100);
+
+                            }
+                            /*catch (InterruptedException e)
+                            {
+                                Log.e("Scanner Connection", "Delay for between card present and powered interupted, aborting transmit");
+                            }*/
+                        }
 
                     }
 
@@ -540,27 +568,55 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
                 });
 
+
         /* Wait for response APDU. */
-        scannerReader.setOnResponseApduAvailableListener(new BluetoothReader.OnResponseApduAvailableListener()
-        {
+        Log.i("Scanner Connection", "Response Listener setting up");
+        scannerReader
+                .setOnResponseApduAvailableListener(new BluetoothReader.OnResponseApduAvailableListener() {
 
                     @Override
-                    public void onResponseApduAvailable(BluetoothReader bluetoothReader, final byte[] apdu, final int errorCode)
-                    {
-                        Log.i("Scanner Connection", "Apdu: " + apdu + " has failed with error: " + errorCode);
-                        if(errorCode == BluetoothReader.ERROR_SUCCESS)
-                        {
-                            //TODO: IMPLEMENT RESULT RECIEVER FOR APDU
-                        }
+                    public void onResponseApduAvailable(
+                            BluetoothReader bluetoothReader, final byte[] apdu,
+                            final int errorCode) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                Log.i("LISTENER RESPONSE", "response apdu recieved");
+                                if(errorCode != BluetoothReader.ERROR_SUCCESS)
+                                {
+                                    Log.e("LISTENER RESPONSE", "response apdu error:" + errorCode);
+                                }
+                                else
+                                {
+                                    Log.i("LISTENER RESPONSE", "response apdu success with: " + apdu + "\n Translates to: " + toHexString(apdu));
+                                }
+                                //mTxtResponseApdu.setText(getResponseString(apdu, errorCode));
+                            }
+                        });
                     }
 
+                });
+        Log.i("Scanner Connection", "Response Listener set up complete");
+
+
+        /* Wait for receiving Apdu Response string. */
+        scannerReader.setOnAtrAvailableListener(new BluetoothReader.OnAtrAvailableListener()
+        {
+            @Override
+            public void onAtrAvailable(BluetoothReader bluetoothReader, final byte[] atr, final int errorCode)
+            {
+                Log.e("Scanner Connection", "ATR Listener Triggered");
+                if (atr == null)
+                {
+                    Log.e("Scanner Connection", "ATR Listener Error: " + errorCode);
+                }
+                else
+                {
+                    Log.i("Scanner Result", "ATR Response Received: " + toHexString(atr));
+                }
+
+            }
         });
-
-
-
-
-
-
 
         /* Handle on battery status available. */
         if (scannerReader instanceof Acr3901us1Reader)
@@ -587,11 +643,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                  }
                  else
                  {
-                     Log.i("Scanner Connection", "Card Status : " + (cardStatus));
-                     if(cardStatus == BluetoothReader.CARD_STATUS_PRESENT)
-                     {
+                     Log.i("Scanner Connection", "Card Status Avaiable: " + (cardStatus));
 
-                     }
                  }
              }
         });
@@ -674,6 +727,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                 /* Enable notification */
                 if (bondState == BluetoothDevice.BOND_BONDED) {
                     if (scannerReader != null) {
+                        Log.i("Scanner Connection", "Notifictions enabled");
                         scannerReader.enableNotification(true);
                     }
                 }
@@ -756,6 +810,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         } else if (scannerReader instanceof Acr1255uj1Reader) {
             /* Enable notification. */
             scannerReader.enableNotification(true);
+            Log.i("Scanner Connection", "Notifications enabled");
         }
     }
 
@@ -821,6 +876,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
     private void transmitApdu()
     {
+        Log.i("Scanner Connection", "APDU Transmiting started.");
         /* Check for detected reader. */
         if (scannerReader == null)
         {
@@ -838,6 +894,10 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             if (!scannerReader.transmitApdu(apduCommand))
             {
                 Log.e("Scanner Connection", "APDU Transmit Error, Card not ready");
+            }
+            else
+            {
+                Log.i("Scanner Connection", "APDU Transmit Successful with command : " + apduCommand + "\nTranslation : " + toHexString(apduCommand));
             }
         }
         else
