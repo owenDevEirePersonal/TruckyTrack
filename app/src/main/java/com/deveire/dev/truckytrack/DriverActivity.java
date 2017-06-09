@@ -17,7 +17,6 @@ import android.location.Location;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Handler;
-import android.os.Looper;
 import android.os.ResultReceiver;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
@@ -25,7 +24,6 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
-import android.text.Editable;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -54,7 +52,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.UnsupportedEncodingException;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -105,7 +102,10 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private BluetoothReaderManager scannerManager;
     private BluetoothReader scannerReader;
 
+    private Timer scannerTimer;
 
+    private static final int MAX_AUTHENTICATION_ATTEMPTS_BEFORE_TIMEOUT = 20;
+    private boolean scannerIsAuthenticated;
 
     //[/Scanner Variables]
 
@@ -121,8 +121,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private final String SAVED_LOCATION_KEY = "79";
 
     private boolean pingingServer;
-    //private final String serverIPAddress = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet";
-    private final String serverIPAddress = "http://api.eirpin.com/api/TTServlet";
+    private final String serverIPAddress = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet";
+    //private final String serverIPAddress = "http://api.eirpin.com/api/TTServlet";
     private String serverURL;
     private NetworkFragment aNetworkFragment;
     //[/Network and periodic location update, Variables]
@@ -264,6 +264,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         /* Start to monitor bond state change */
         intentFilter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
         registerReceiver(mBroadcastReceiver, intentFilter);
+
+        setupBluetoothScanner();
     }
 
     @Override
@@ -278,10 +280,13 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         /* Stop to monitor bond state change */
         unregisterReceiver(mBroadcastReceiver);
 
+        scannerIsAuthenticated = false;
+
         /* Disconnect Bluetooth reader */
         disconnectReader();
 
-
+        scannerTimer.cancel();
+        scannerTimer.purge();
 
         super.onPause();
         //finish();
@@ -320,6 +325,9 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             if (resultCode == RESULT_OK) {
                 Log.i("PairingResult", "Recieved Result Ok");
                 storedScannerAddress = data.getStringExtra("BTMacAddress");
+                SharedPreferences.Editor edit = savedData.edit();
+                edit.putString("ScannerMacAddress", storedScannerAddress);
+                edit.commit();
                 Log.i("Pairing Result", "Recieved scannerMacAddress of : " + storedScannerAddress);
 
 
@@ -345,9 +353,27 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         }
     }
 
+    private void scanKeg(String kegIDin)
+    {
+        if(!kegIDin.matches(""))
+        {
+            kegIDin = kegIDin.replace(' ', '_');
+            serverURL = serverIPAddress + "?request=storekeg" + "&id=" + itemID + "&kegid=" + kegIDin + "&lat=" + locationReceivedFromLocationUpdates.getLatitude() + "&lon=" + locationReceivedFromLocationUpdates.getLongitude();
+            //lat and long are doubles, will cause issue? nope
+            Log.i("Network Update", "Attempting to start download from scanKeg. " + serverURL);
+            aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
+        }
+        else
+        {
+            Log.e("kegScan Error", "invalid uuid entered.");
+        }
+    }
+
 //++++++++++[Bluetooth BLE Code]
     private void setupBluetoothScanner()
     {
+        scannerTimer = new Timer();
+
         REQUEST_ENABLE_BT = 1;
 
         btManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
@@ -395,8 +421,10 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
                             if (newState == BluetoothReader.STATE_CONNECTED) {
                                 Log.e("ScannerConnection", "Bt Reader Failled to connect");
+
                             } else if (newState == BluetoothReader.STATE_DISCONNECTED) {
                                 Log.e("ScannerConnection", "Bt Reader Failed To Disconnect");
+                                mapText.setText("Connection Error \n Try waking your \n device up or \n try re-pairing it");
 
                             }
 
@@ -517,7 +545,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                             Log.i("Scanner Connection", "about to transmit APDU : " + cardStatus);
                             //try
                             {
-                                new Timer().schedule(new TimerTask() {
+                                scannerTimer.schedule(new TimerTask() {
                                     @Override
                                     public void run() {
                                         transmitApdu();
@@ -556,6 +584,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                         });
                                 if (errorCode == BluetoothReader.ERROR_SUCCESS)
                                 {
+                                    scannerIsAuthenticated = true;
                                     Log.i("Scanner Connection", "Authentication Success! Starting Polling ");
                                     startPolling();
 
@@ -589,6 +618,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                                 else
                                 {
                                     Log.i("LISTENER RESPONSE", "response apdu success with: " + apdu + "\n Translates to: " + toHexString(apdu));
+                                    scanKeg(toHexString(apdu));
                                 }
                                 //mTxtResponseApdu.setText(getResponseString(apdu, errorCode));
                             }
@@ -599,24 +629,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         Log.i("Scanner Connection", "Response Listener set up complete");
 
 
-        /* Wait for receiving Apdu Response string. */
-        scannerReader.setOnAtrAvailableListener(new BluetoothReader.OnAtrAvailableListener()
-        {
-            @Override
-            public void onAtrAvailable(BluetoothReader bluetoothReader, final byte[] atr, final int errorCode)
-            {
-                Log.e("Scanner Connection", "ATR Listener Triggered");
-                if (atr == null)
-                {
-                    Log.e("Scanner Connection", "ATR Listener Error: " + errorCode);
-                }
-                else
-                {
-                    Log.i("Scanner Result", "ATR Response Received: " + toHexString(atr));
-                }
 
-            }
-        });
 
         /* Handle on battery status available. */
         if (scannerReader instanceof Acr3901us1Reader)
@@ -665,7 +678,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                                 else
                                 {
                                     Log.i("Scanner Connection", "The device is ready to use!");
-                                    scannerAuthenticate();
+                                    //ScannerAuthLoop is recursive
+                                    scannerAuthLoop(500);
                                 }
                             }
                         });
@@ -673,6 +687,24 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         });
 
 
+    }
+
+    //This recursive method queues a new attempt to Authenticate the scanner every 500ms until the scanner is successfully authenicated.
+    //This method is nessary to circumvente the Authentication process sometimes failing, and the OnAuthenticationComplete listener failing to detect
+    // or respond to failures to authenticate most, but not all, of the time.
+    //TODO: Consider adding a hard limit of the amount of times this can run to the method.
+    private void scannerAuthLoop(final int delay)
+    {
+        scannerTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                if(!scannerIsAuthenticated)
+                {
+                    scannerAuthenticate();
+                    scannerAuthLoop(delay + 500);
+                }
+            }
+        }, delay);
     }
 
     private final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
@@ -714,6 +746,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                         .getRemoteDevice(storedScannerAddress);
 
                 if (device == null) {
+                    mapText.setText("Device not found.\n Wake up the device or \nTry Pairing the device again.");
                     Log.e("Scanner Connection", "Device not found, likely no address stored.");
                     return;
                 }
@@ -778,6 +811,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
         if (device == null) {
             Log.e("Scanner Connection", "Device not found. Unable to connect.");
+            mapText.setText("Device not found.\n Wake up the \ndevice or \nTry Pairing the \ndevice again.");
             return false;
         }
 
@@ -794,6 +828,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             return;
         }
         scannerConnectionState = BluetoothReader.STATE_DISCONNECTING;
+        stopPolling();
         btGatt.disconnect();
         Log.i("Scanner Connection", "Disconnected from scanner");
     }
@@ -1244,7 +1279,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         if(result != null)
         {
             Log.i("Network UPDATE", "Non null result received." );
-            mapText.setText("We're good");
+            //mapText.setText("We're good");
             if(itemID == 0 && !result.matches(""))//if app has no assigned id, receive id from servlet.
             {
                 try

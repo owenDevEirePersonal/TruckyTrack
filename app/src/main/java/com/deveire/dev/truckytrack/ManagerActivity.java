@@ -166,6 +166,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         refreshHandler.removeCallbacks(periodicRefresher);
     }
 
+    //TODO: Disable this when the user navigates away from the app
     Runnable periodicRefresher = new Runnable()
     {
         @Override
