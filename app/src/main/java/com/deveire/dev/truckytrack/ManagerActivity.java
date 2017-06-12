@@ -201,8 +201,8 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     {
         mMap = googleMap;
 
-        // Add a marker in Sydney and move the camera
-        mMap.addMarker(new MarkerOptions().position(new LatLng(userLocation.getLatitude(), userLocation.getLongitude())).title("You"));
+        // Add a markers and move the camera
+        //mMap.addMarker(new MarkerOptions().position(new LatLng(userLocation.getLatitude(), userLocation.getLongitude())).title("You"));
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(userLocation.getLatitude(), userLocation.getLongitude()), 7));
         mMap.setOnCameraIdleListener(new mapScrolledListener());
         retrieveLocations();
@@ -222,7 +222,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
             if(currentItemID.matches("Current Keg Locations") || currentItemID.matches("09-05-2017 Latest") || currentItemID.matches("09-05-2017 All") || currentItemID.matches("10-05-2017 Latest") || currentItemID.matches("10-05-2017 All") || currentItemID.matches("11-05-2017 Latest") || currentItemID.matches("11-05-2017 All"))
             {
                 mMap.addMarker(new MarkerOptions().position(aloc).title(allCurrentKegIDs.get(i)));
-                Log.i("Map Update", "Placing Keg Marker at " + aloc.toString());
+                Log.i("Map Update", "Placing Keg Marker " + allCurrentKegIDs.get(i) + " at " + aloc.toString());
             }
             else
             {
@@ -231,7 +231,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
             }
             i++;
         }
-        mMap.addMarker(new MarkerOptions().position(new LatLng(userLocation.getLatitude(), userLocation.getLongitude())).title("You"));
+        //mMap.addMarker(new MarkerOptions().position(new LatLng(userLocation.getLatitude(), userLocation.getLongitude())).title("You"));
 
     }
 
@@ -612,7 +612,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
             //[JURY RIGGED irregular distances between long and lat, solution]
 
             //if the user is looking at the current last known locations of kegs then do nothing, as ALL keg locations are retrieve when the user selects that option. else retrieve the locations within viewport.
-            if(!currentItemID.matches("Current Keg Locations"))
+            if(!(currentItemID.matches("Current Keg Locations") || currentItemID.matches("09-05-2017 Latest")  || currentItemID.matches("09-05-2017 All")  || currentItemID.matches("10-05-2017 Latest") || currentItemID.matches("10-05-2017 All") || currentItemID.matches("11-05-2017 Latest") || currentItemID.matches("11-05-2017 All")))
             {
                 retrieveLocations(viewportCentre, viewportRadius);
             }
