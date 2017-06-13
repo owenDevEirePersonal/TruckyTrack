@@ -71,8 +71,8 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     private final int pingingServerFor_Nothing = 0;
 
 
-    //private final String serverIPAddress = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet";
-    private final String serverIPAddress = "http://api.eirpin.com/api/TTServlet";
+    private final String serverIPAddress = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet";
+    //private final String serverIPAddress = "http://api.eirpin.com/api/TTServlet";
     private String serverURL;
     private NetworkFragment aNetworkFragment;
     //[/Network and periodic location update, Variables]
