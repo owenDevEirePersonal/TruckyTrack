@@ -4,8 +4,6 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothManager;
-import android.bluetooth.BluetoothProfile;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -25,6 +23,7 @@ import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -52,7 +51,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -89,10 +87,16 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private BluetoothReaderGattCallback btLeGattCallback;
     //[/BLE Variables]
 
+    //[Bar Reader Variables]
+    private String barReaderInput;
+    private Boolean barReaderInputInProgress;
+    private Timer barReaderTimer;
+    //[/Bar Reader Variables]
+
     //[Scanner Variables]
 
     /* Default master key. */
-    private static final String DEFAULT_1255_MASTER_KEY = "ACR1255U-J1 Auth";
+    /*private static final String DEFAULT_1255_MASTER_KEY = "ACR1255U-J1 Auth";
 
     private static final byte[] AUTO_POLLING_START = { (byte) 0xE0, 0x00, 0x00, 0x40, 0x01 };
     private static final byte[] AUTO_POLLING_STOP = { (byte) 0xE0, 0x00, 0x00, 0x40, 0x00 };
@@ -105,7 +109,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private Timer scannerTimer;
 
     private static final int MAX_AUTHENTICATION_ATTEMPTS_BEFORE_TIMEOUT = 20;
-    private boolean scannerIsAuthenticated;
+    private boolean scannerIsAuthenticated;*/
 
     //[/Scanner Variables]
 
@@ -150,7 +154,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             {
                 //scanKeg();
                 //Log.i("Scanner Connection", "current card status = " + currentCardStatus);
-                transmitApdu();
+                //transmitApdu();
             }
         });
 
@@ -247,7 +251,10 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
         geoCoderServiceResultReciever = new DriverActivity.AddressResultReceiver(new Handler());
 
-        setupBluetoothScanner();
+        //setupBluetoothScanner();
+        barReaderTimer = new Timer();
+        barReaderInput = "";
+        barReaderInputInProgress = false;
 
         restoreSavedValues(savedInstanceState);
 
@@ -261,11 +268,15 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
         final IntentFilter intentFilter = new IntentFilter();
 
-        /* Start to monitor bond state change */
+        barReaderTimer = new Timer();
+
+        /*
+        /* Start to monitor bond state change /
         intentFilter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED);
         registerReceiver(mBroadcastReceiver, intentFilter);
 
         setupBluetoothScanner();
+        */
     }
 
     @Override
@@ -277,16 +288,23 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             aNetworkFragment.cancelDownload();
         }
 
-        /* Stop to monitor bond state change */
+        barReaderTimer.cancel();
+        barReaderTimer.purge();
+
+        //[Scanner onPause]
+        /*
+        /* Stop to monitor bond state change /
         unregisterReceiver(mBroadcastReceiver);
 
         scannerIsAuthenticated = false;
 
-        /* Disconnect Bluetooth reader */
+        /* Disconnect Bluetooth reader /
         disconnectReader();
 
         scannerTimer.cancel();
         scannerTimer.purge();
+        */
+        //[/Scanner On pause]
 
         super.onPause();
         //finish();
@@ -301,16 +319,18 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         edit.putString("itemName", nameEditText.getText().toString());
         edit.putInt("itemID", itemID);
 
-        edit.putString("ScannerMacAddress", storedScannerAddress);
+        //edit.putString("ScannerMacAddress", storedScannerAddress);
 
 
         edit.commit();
 
+        /*
         if(btGatt != null)
         {
             btGatt.disconnect();
             btGatt.close();
         }
+        */
 
         super.onStop();
     }
@@ -369,7 +389,77 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         }
     }
 
+    public boolean onKeyUp(int keyCode, KeyEvent event)
+    {
+        Log.i("BarReader   ", "OnKeyUp Triggered");
+
+        switch (keyCode)
+        {
+            case KeyEvent.KEYCODE_0: barReaderInput += "0"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_1: barReaderInput += "1"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_2: barReaderInput += "2"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_3: barReaderInput += "3"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_4: barReaderInput += "4"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_5: barReaderInput += "5"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_6: barReaderInput += "6"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_7: barReaderInput += "7"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_8: barReaderInput += "8"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_9: barReaderInput += "9"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_Q: barReaderInput += "Q"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_W: barReaderInput += "W"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_E: barReaderInput += "E"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_R: barReaderInput += "R"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_T: barReaderInput += "T"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_Y: barReaderInput += "Y"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_U: barReaderInput += "U"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_I: barReaderInput += "I"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_O: barReaderInput += "O"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_P: barReaderInput += "P"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_A: barReaderInput += "A"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_S: barReaderInput += "S"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_D: barReaderInput += "D"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_F: barReaderInput += "F"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_G: barReaderInput += "G"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_H: barReaderInput += "H"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_J: barReaderInput += "J"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_K: barReaderInput += "K"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_L: barReaderInput += "L"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_Z: barReaderInput += "Z"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_X: barReaderInput += "X"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_C: barReaderInput += "C"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_V: barReaderInput += "V"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_B: barReaderInput += "B"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_N: barReaderInput += "N"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_M: barReaderInput += "M"; barScannerSheduleUpload(); Log.i("BarReader   ", "Current Input equals: " + barReaderInput); break;
+            case KeyEvent.KEYCODE_BACK: Log.i("BarReader   ", "Current Input equals Back"); finish(); break;
+            default: Log.i("BarReader   ", "Unidentified symbol: " + keyCode); break;
+        }
+
+        return true;
+    }
+
+    private void barScannerSheduleUpload()
+    {
+        int delay = 1500;
+        if(!barReaderInputInProgress)
+        {
+            barReaderInputInProgress = true;
+            barReaderTimer.schedule(new TimerTask()
+            {
+                @Override
+                public void run()
+                {
+                    scanKeg(barReaderInput);
+                    Log.i("BarReader   ", "Final Input equals: " + barReaderInput);
+                    barReaderInputInProgress = false;
+                    barReaderInput = "";
+                }
+            }, delay);
+        }
+    }
+
 //++++++++++[Bluetooth BLE Code]
+    /*
     private void setupBluetoothScanner()
     {
         scannerTimer = new Timer();
@@ -416,7 +506,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                                     /*
                                      * Show the message on fail to
                                      * connect/disconnect.
-                                     */
+                                     /
                             scannerConnectionState = BluetoothReader.STATE_DISCONNECTED;
 
                             if (newState == BluetoothReader.STATE_CONNECTED) {
@@ -437,7 +527,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
 
                         if (newState == BluetoothProfile.STATE_CONNECTED) {
-                                    /* Detect the connected reader. */
+                                    /* Detect the connected reader. /
                             if (scannerManager != null) {
                                 scannerManager.detectReader(inGatt, btLeGattCallback);
                             }
@@ -446,7 +536,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                                     /*
                                      * Release resources occupied by Bluetooth
                                      * GATT client.
-                                     */
+                                     /
                             if (btGatt != null) {
                                 btGatt.close();
                                 btGatt = null;
@@ -457,10 +547,10 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             }
         });
 
-        /* Initialize mBluetoothReaderManager. */
+        /* Initialize mBluetoothReaderManager. /
         scannerManager = new BluetoothReaderManager();
 
-        /* Register BluetoothReaderManager's listeners */
+        /* Register BluetoothReaderManager's listeners /
         scannerManager.setOnReaderDetectionListener(new BluetoothReaderManager.OnReaderDetectionListener() {
 
                     @Override
@@ -468,10 +558,10 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
 
                         if (reader instanceof Acr3901us1Reader) {
-                            /* The connected reader is ACR3901U-S1 reader. */
+                            /* The connected reader is ACR3901U-S1 reader. /
                             Log.v("Reader Connection", "On Acr3901us1Reader Detected.");
                         } else if (reader instanceof Acr1255uj1Reader) {
-                            /* The connected reader is ACR1255U-J1 reader. */
+                            /* The connected reader is ACR1255U-J1 reader. /
                             Log.v("Reader Connection", "On Acr1255uj1Reader Detected.");
                         } else {
                             runOnUiThread(new Runnable() {
@@ -479,7 +569,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                                 public void run() {
                                     Log.e("Reader Connection", "The device is not supported!");
 
-                                    /* Disconnect Bluetooth reader */
+                                    /* Disconnect Bluetooth reader /
                                     Log.e("Reader Coonection", "Disconnect reader!!!");
                                     disconnectReader();
                                     scannerConnectionState = BluetoothReader.STATE_DISCONNECTED;
@@ -494,12 +584,14 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                     }
                 });
 
-        /* Connect the reader. */
+        /* Connect the reader. /
         connectReader();
     }
+    */
 
+    /*
     private void setListener(BluetoothReader reader) {
-        /* Update status change listener */
+        /* Update status change listener /
         if (scannerReader instanceof Acr3901us1Reader) {
             ((Acr3901us1Reader) scannerReader)
                     .setOnBatteryStatusChangeListener(new Acr3901us1Reader.OnBatteryStatusChangeListener() {
@@ -556,14 +648,14 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                             /*catch (InterruptedException e)
                             {
                                 Log.e("Scanner Connection", "Delay for between card present and powered interupted, aborting transmit");
-                            }*/
+                            }/
                         }
 
                     }
 
                 });
 
-        /* Wait for authentication completed. */
+        /* Wait for authentication completed. /
         scannerReader.setOnAuthenticationCompleteListener(new BluetoothReader.OnAuthenticationCompleteListener() {
 
                     @Override
@@ -598,7 +690,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                 });
 
 
-        /* Wait for response APDU. */
+        /* Wait for response APDU. /
         Log.i("Scanner Connection", "Response Listener setting up");
         scannerReader
                 .setOnResponseApduAvailableListener(new BluetoothReader.OnResponseApduAvailableListener() {
@@ -631,7 +723,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
 
 
-        /* Handle on battery status available. */
+        /* Handle on battery status available. /
         if (scannerReader instanceof Acr3901us1Reader)
         {
             ((Acr3901us1Reader) scannerReader).setOnBatteryStatusAvailableListener(new Acr3901us1Reader.OnBatteryStatusAvailableListener()
@@ -644,7 +736,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             });
         }
 
-        /* Handle on slot status available. */
+        /* Handle on slot status available. /
         scannerReader.setOnCardStatusAvailableListener(new BluetoothReader.OnCardStatusAvailableListener()
         {
              @Override
@@ -672,7 +764,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                             @Override
                             public void run() {
                                 if (result != BluetoothGatt.GATT_SUCCESS) {
-                                    /* Fail */
+                                    /* Fail /
                                     Log.i("Scanner Connection", "The device is unable to set notification!");
                                 }
                                 else
@@ -716,7 +808,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             final String action = intent.getAction();
 
             if (!(scannerReader instanceof Acr3901us1Reader)) {
-                /* Only ACR3901U-S1 require bonding. */
+                /* Only ACR3901U-S1 require bonding. /
                 return;
             }
 
@@ -724,7 +816,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             {
                 Log.i("Scanner Connection", "ACTION_BOND_STATE_CHANGED");
 
-                /* Get bond (pairing) state */
+                /* Get bond (pairing) state /
                 if (scannerManager == null) {
                     Log.w("Scanner Connection", "Unable to initialize BluetoothReaderManager.");
                     return;
@@ -757,7 +849,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                 Log.i("", "BroadcastReceiver - getBondState. state = "
                         + bondState);
 
-                /* Enable notification */
+                /* Enable notification /
                 if (bondState == BluetoothDevice.BOND_BONDED) {
                     if (scannerReader != null) {
                         Log.i("Scanner Connection", "Notifictions enabled");
@@ -769,8 +861,9 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             }
         }
 
-    };
+    };*/
 
+    /*
     private boolean connectReader() {
         BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
         if (bluetoothManager == null) {
@@ -789,7 +882,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         /*
          * Connect Device.
          */
-        /* Clear old GATT connection. */
+        /* Clear old GATT connection. /
         if (btGatt != null) {
             Log.i("Scanner Connection", "Clear old GATT connection");
             btGatt.disconnect();
@@ -801,7 +894,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             Log.i("Scanner Connection", "old GATT connection already clear");
         }
 
-        /* Create a new connection. */
+        /* Create a new connection. /
         BluetoothDevice device = null;
 
         if(!storedScannerAddress.matches("None"))
@@ -815,13 +908,13 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             return false;
         }
 
-        /* Connect to GATT server. */
+        /* Connect to GATT server. /
         scannerConnectionState = BluetoothReader.STATE_CONNECTING;
         btGatt = device.connectGatt(this, false, btLeGattCallback);
         return true;
     }
 
-    /* Disconnects an established connection. */
+    /* Disconnects an established connection. /
     private void disconnectReader() {
         if (btGatt == null) {
             scannerConnectionState = BluetoothReader.STATE_DISCONNECTED;
@@ -833,17 +926,17 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         Log.i("Scanner Connection", "Disconnected from scanner");
     }
 
-    /* Start the process to enable the reader's notifications. */
+    /* Start the process to enable the reader's notifications. /
     private void activateReader(BluetoothReader reader) {
         if (reader == null) {
             return;
         }
 
         if (reader instanceof Acr3901us1Reader) {
-            /* Start pairing to the reader. */
+            /* Start pairing to the reader. /
             ((Acr3901us1Reader) scannerReader).startBonding();
         } else if (scannerReader instanceof Acr1255uj1Reader) {
-            /* Enable notification. */
+            /* Enable notification. /
             scannerReader.enableNotification(true);
             Log.i("Scanner Connection", "Notifications enabled");
         }
@@ -856,7 +949,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             return;
         }
 
-                /* Retrieve master key from edit box. */
+                /* Retrieve master key from edit box. /
         byte masterKey[] = null;
 
         try
@@ -868,7 +961,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             Log.e("Scanner Connection", "UnsupportedEncodingException :" + e.toString());
             return;
         }
-                    /* Start authentication. */
+                    /* Start authentication. /
         Log.i("Scanner Connection", "Authenticating with key: " + masterKey);
         if (!scannerReader.authenticate(masterKey))
         {
@@ -882,7 +975,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
     }
 
-    /* Start polling card. */
+    /* Start polling card. /
     private void startPolling()
     {
         if (scannerReader == null)
@@ -897,7 +990,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         }
     }
 
-    /* Stop polling card. */
+    /* Stop polling card. /
     private void stopPolling()
         {
         if (scannerReader == null) {
@@ -912,20 +1005,20 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private void transmitApdu()
     {
         Log.i("Scanner Connection", "APDU Transmiting started.");
-        /* Check for detected reader. */
+        /* Check for detected reader. /
         if (scannerReader == null)
         {
             Log.e("Scanner Connection", "APDU Transmit Error, scanner not found");
             return;
         }
 
-                /* Retrieve APDU command from edit box. */
+                /* Retrieve APDU command from edit box. /
         byte apduCommand[] = GET_UID_APDU_COMMAND;
 
         if (apduCommand != null && apduCommand.length > 0)
         {
 
-                    /* Transmit APDU command. */
+                    /* Transmit APDU command. /
             if (!scannerReader.transmitApdu(apduCommand))
             {
                 Log.e("Scanner Connection", "APDU Transmit Error, Card not ready");
@@ -1042,7 +1135,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         return true;
     }
 
-    /* Get the Error string. */
+    /* Get the Error string. /
     private String getErrorString(int errorCode) {
         if (errorCode == BluetoothReader.ERROR_SUCCESS) {
             return "";
