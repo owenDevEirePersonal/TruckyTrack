@@ -25,6 +25,7 @@ import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -255,6 +256,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         barReaderTimer = new Timer();
         barReaderInput = "";
         barReaderInputInProgress = false;
+        kegIDEditText.requestFocus();
 
         restoreSavedValues(savedInstanceState);
 

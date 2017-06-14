@@ -40,7 +40,6 @@
         android:layout_marginTop="65dp"
         android:ems="10"
         android:inputType="textNoSuggestions"
-        android:text="Keg ID"
         map:layout_constraintHorizontal_bias="1.0"
         map:layout_constraintLeft_toRightOf="@+id/mapText"
         map:layout_constraintRight_toRightOf="parent"
@@ -51,10 +50,11 @@
         android:id="@+id/scanKegButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Scan Keg"
-        tools:layout_editor_absoluteX="16dp"
         android:layout_marginTop="10dp"
-        map:layout_constraintTop_toBottomOf="@+id/mapText"/>
+        android:enabled="false"
+        android:text="Scan Keg"
+        map:layout_constraintTop_toBottomOf="@+id/mapText"
+        tools:layout_editor_absoluteX="16dp"/>
 
     <Button
         android:id="@+id/pairReaderButton"
@@ -63,6 +63,7 @@
         android:layout_marginLeft="0dp"
         android:layout_marginRight="0dp"
         android:layout_marginTop="11dp"
+        android:enabled="false"
         android:text="Pair Reader"
         map:layout_constraintHorizontal_bias="0.0"
         map:layout_constraintLeft_toLeftOf="@+id/scanKegButton"
