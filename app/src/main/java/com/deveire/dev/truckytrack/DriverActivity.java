@@ -369,6 +369,23 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         }
     }
 
+    private void retrieveKegData(String kegIDin)
+    {
+        if(!kegIDin.matches(""))
+        {
+            kegIDin = kegIDin.replace(' ', '_');
+            serverURL = serverIPAddress + "?request=getkegdata" + "&kegid=" + kegIDin;
+            //lat and long are doubles, will cause issue? nope
+            Log.i("Network Update", "Attempting to start download from retrieveKegData " + serverURL);
+            pingingServerFor_KegData = true;
+            aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
+        }
+        else
+        {
+            Log.e("kegData Error", "invalid uuid entered. " + kegIDin);
+        }
+    }
+
 //++++++++++[Bluetooth BLE Code]
     private void setupBluetoothScanner()
     {
