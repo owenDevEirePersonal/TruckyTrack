@@ -127,6 +127,9 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private NetworkFragment aNetworkFragment;
     //[/Network and periodic location update, Variables]
 
+    private Boolean pingingServerFor_KegData;
+    private TextView kegDataText;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -251,6 +254,10 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
         restoreSavedValues(savedInstanceState);
 
+        pingingServerFor_KegData = false;
+        kegDataText = (TextView) findViewById(R.id.kegDataText);
+
+
     }
 
     @Override
@@ -362,6 +369,23 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             //lat and long are doubles, will cause issue? nope
             Log.i("Network Update", "Attempting to start download from scanKeg. " + serverURL);
             aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
+
+            Timer _timer = new Timer();
+            final String kegIDin2 = kegIDin;
+            _timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    // use runOnUiThread(Runnable action)
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            retrieveKegData(kegIDin2);
+                        }
+                    });
+                }
+
+            }, 1000);
+
         }
         else
         {
@@ -1297,16 +1321,32 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         {
             Log.i("Network UPDATE", "Non null result received." );
             //mapText.setText("We're good");
-            if(itemID == 0 && !result.matches(""))//if app has no assigned id, receive id from servlet.
+            if(pingingServerFor_KegData)
             {
-                try
+                pingingServerFor_KegData = false;
+                result = result.replace("was Picked up at:", "\nwas picked up at:");
+                result = result.replace(") at ", ") \nat ");
+                result = result.replace("then Dropped at:", "\nthen dropped at:");
+                result = result.replace("by Driver:", "\nby driver:");
+
+                result = result.replace("is being transported by truck", "\nis being transported by driver: ");
+                result = result.replace("currently at ", "\ncurrently at: ");
+                kegDataText.setText(result);
+
+            }
+            else
+            {
+                if (itemID == 0 && !result.matches(""))//if app has no assigned id, receive id from servlet.
                 {
-                    JSONArray jin = new JSONArray(result);
-                    JSONObject obj = jin.getJSONObject(0);
-                    itemID = obj.getInt("id");
-                } catch (JSONException e)
-                {
-                    Log.e("JSON ERROR", "Error retrieving id from servlet with exception: " + e.toString());
+                    try
+                    {
+                        JSONArray jin = new JSONArray(result);
+                        JSONObject obj = jin.getJSONObject(0);
+                        itemID = obj.getInt("id");
+                    } catch (JSONException e)
+                    {
+                        Log.e("JSON ERROR", "Error retrieving id from servlet with exception: " + e.toString());
+                    }
                 }
             }
 
