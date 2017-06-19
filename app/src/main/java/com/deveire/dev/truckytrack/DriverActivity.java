@@ -88,14 +88,19 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private BluetoothReaderGattCallback btLeGattCallback;
     //[/BLE Variables]
 
-    //[Bar Reader Variables]
+    //[Retreive Keg Data Variables]
+    private Boolean pingingServerFor_KegData;
+    private TextView kegDataText;
+    //[/Retreive Keg Data Variables]
+
+    /*[Bar Reader Variables]
     private String barReaderInput;
     private Boolean barReaderInputInProgress;
     private Timer barReaderTimer;
 
-    private Boolean pingingServerFor_KegData;
-    private TextView kegDataText;
-    //[/Bar Reader Variables]
+
+
+    //[/Bar Reader Variables] */
 
     //[Scanner Variables]
 
@@ -256,12 +261,13 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         geoCoderServiceResultReciever = new DriverActivity.AddressResultReceiver(new Handler());
 
         //setupBluetoothScanner();
+        /*
         barReaderTimer = new Timer();
         barReaderInput = "";
         barReaderInputInProgress = false;
         pingingServerFor_KegData = false;
         kegDataText = (TextView) findViewById(R.id.kegDataText);
-        kegIDEditText.requestFocus();
+        kegIDEditText.requestFocus();*/
 
         restoreSavedValues(savedInstanceState);
 
@@ -275,7 +281,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
         final IntentFilter intentFilter = new IntentFilter();
 
-        barReaderTimer = new Timer();
+        //barReaderTimer = new Timer();
 
         /*
         /* Start to monitor bond state change /
@@ -295,8 +301,10 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             aNetworkFragment.cancelDownload();
         }
 
+        /*
         barReaderTimer.cancel();
         barReaderTimer.purge();
+        */
 
         //[Scanner onPause]
         /*
@@ -396,7 +404,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         }
     }
 
-    public boolean onKeyUp(int keyCode, KeyEvent event)
+    /*public boolean onKeyUp(int keyCode, KeyEvent event)
     {
         Log.i("BarReader   ", "OnKeyUp Triggered");
 
@@ -443,9 +451,9 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         }
 
         return true;
-    }
+    }*/
 
-    private void barScannerSheduleUpload()
+    /*private void barScannerSheduleUpload()
     {
         int delay = 1500;
         if(!barReaderInputInProgress)
@@ -473,7 +481,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                 }
             }, delay);
         }
-    }
+    }*/
 
     private void retrieveKegData(String kegIDin)
     {
