@@ -92,6 +92,9 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private String barReaderInput;
     private Boolean barReaderInputInProgress;
     private Timer barReaderTimer;
+
+    private Boolean pingingServerFor_KegData;
+    private TextView kegDataText;
     //[/Bar Reader Variables]
 
     //[Scanner Variables]
@@ -256,6 +259,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         barReaderTimer = new Timer();
         barReaderInput = "";
         barReaderInputInProgress = false;
+        pingingServerFor_KegData = false;
+        kegDataText = (TextView) findViewById(R.id.kegDataText);
         kegIDEditText.requestFocus();
 
         restoreSavedValues(savedInstanceState);
@@ -454,9 +459,36 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                     scanKeg(barReaderInput);
                     Log.i("BarReader   ", "Final Input equals: " + barReaderInput);
                     barReaderInputInProgress = false;
+                    final String barReaderInputToRead = barReaderInput;
                     barReaderInput = "";
+                    barReaderTimer.schedule(new TimerTask()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            Log.i("BarReader  ", "Launching Data Request");
+                            retrieveKegData(barReaderInputToRead);
+                        }
+                    }, 2000);
                 }
             }, delay);
+        }
+    }
+
+    private void retrieveKegData(String kegIDin)
+    {
+        if(!kegIDin.matches(""))
+        {
+            kegIDin = kegIDin.replace(' ', '_');
+            serverURL = serverIPAddress + "?request=getkegdata" + "&kegid=" + kegIDin;
+            //lat and long are doubles, will cause issue? nope
+            Log.i("Network Update", "Attempting to start download from retrieveKegData " + serverURL);
+            pingingServerFor_KegData = true;
+            aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
+        }
+        else
+        {
+            Log.e("kegData Error", "invalid uuid entered. " + kegIDin);
         }
     }
 
@@ -1375,16 +1407,32 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         {
             Log.i("Network UPDATE", "Non null result received." );
             //mapText.setText("We're good");
-            if(itemID == 0 && !result.matches(""))//if app has no assigned id, receive id from servlet.
+            if(pingingServerFor_KegData)
             {
-                try
+                pingingServerFor_KegData = false;
+                result = result.replace("was Picked up at:", "\nwas picked up at:");
+                result = result.replace(") at ", ") \nat ");
+                result = result.replace("then Dropped at:", "\nthen dropped at:");
+                result = result.replace("by Driver:", "\nby driver:");
+
+                result = result.replace("is being transported by truck", "\nis being transported by driver: ");
+                result = result.replace("currently at ", "\ncurrently at: ");
+                kegDataText.setText(result);
+
+            }
+            else
+            {
+                if (itemID == 0 && !result.matches(""))//if app has no assigned id, receive id from servlet.
                 {
-                    JSONArray jin = new JSONArray(result);
-                    JSONObject obj = jin.getJSONObject(0);
-                    itemID = obj.getInt("id");
-                } catch (JSONException e)
-                {
-                    Log.e("JSON ERROR", "Error retrieving id from servlet with exception: " + e.toString());
+                    try
+                    {
+                        JSONArray jin = new JSONArray(result);
+                        JSONObject obj = jin.getJSONObject(0);
+                        itemID = obj.getInt("id");
+                    } catch (JSONException e)
+                    {
+                        Log.e("JSON ERROR", "Error retrieving id from servlet with exception: " + e.toString());
+                    }
                 }
             }
 
