@@ -26,9 +26,7 @@ import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.View;
-import android.view.inputmethod.EditorInfo;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -117,7 +115,12 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private String startTimeString;
     private static volatile Boolean getMsgFlag = false;
 
-    //[Tile Reader Variables]
+
+    private Timer tileReaderTimer;
+    private boolean uidIsFound;
+    private boolean hasSufferedAtLeastOneFailureToReadUID;
+
+    //[/Tile Reader Variables]
 
     /*[Bar Reader Variables]
     private String barReaderInput;
@@ -310,7 +313,13 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
         final IntentFilter intentFilter = new IntentFilter();
 
+        uidIsFound = false;
+        hasSufferedAtLeastOneFailureToReadUID = true;
+        //connectToTileScanner();
+
         //barReaderTimer = new Timer();
+
+
 
         /*
         /* Start to monitor bond state change /
@@ -329,6 +338,11 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         {
             aNetworkFragment.cancelDownload();
         }
+
+        //TODO: Add disconnect tileReader
+
+        tileReaderTimer.cancel();
+        tileReaderTimer.purge();
 
         /*
         barReaderTimer.cancel();
@@ -550,6 +564,12 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         mScanner = new Scanner(DriverActivity.this, scannerCallback);
         deviceManager = new DeviceManager(DriverActivity.this);
         deviceManager.setCallBack(deviceManagerCallback);
+
+
+        tileReaderTimer = new Timer();
+        uidIsFound = false;
+        hasSufferedAtLeastOneFailureToReadUID = false;
+
         connectToTileScanner();
     }
 
@@ -625,21 +645,53 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         }
 
         @Override
-        public void onReceiveRfnSearchCard(boolean blnIsSus, int cardType, byte[] bytCardSn, byte[] bytCarATS) {
+        public void onReceiveRfnSearchCard(boolean blnIsSus, int cardType, byte[] bytCardSn, byte[] bytCarATS)
+        {
             super.onReceiveRfnSearchCard(blnIsSus, cardType, bytCardSn, bytCarATS);
-            if (!blnIsSus) {
+            if (!blnIsSus)
+            {
                 return;
             }
             StringBuffer stringBuffer = new StringBuffer();
-            for (int i=0; i<bytCardSn.length; i++) {
+            for (int i = 0; i < bytCardSn.length; i++)
+            {
                 stringBuffer.append(String.format("%02x", bytCardSn[i]));
             }
 
             StringBuffer stringBuffer1 = new StringBuffer();
-            for (int i=0; i<bytCarATS.length; i++) {
+            for (int i = 0; i < bytCarATS.length; i++)
+            {
                 stringBuffer1.append(String.format("%02x", bytCarATS[i]));
             }
-            kegDataText.setText(stringBuffer);
+
+            final StringBuffer outUID = stringBuffer;
+            if (hasSufferedAtLeastOneFailureToReadUID)
+            {
+                uidIsFound = true;
+                runOnUiThread(new Runnable()
+                {
+                    @Override
+                    public void run()
+                    {
+                        Log.i("TileScanner", "callback received: UID = " + outUID);
+                        kegDataText.setText(outUID);
+                    }
+                });
+            }
+            else
+            {
+                runOnUiThread(new Runnable()
+                {
+                    @Override
+                    public void run()
+                    {
+                        Log.i("TileScanner", "UID found without a prior failure, assuming its a tag left on the scanner");
+                        kegDataText.setText("UID found without a prior failure, assuming its a tag left on the scanner");
+                    }
+                });
+
+            }
+
             Log.i("TileScanner","Activity Activate card callback received：UID->" + stringBuffer + " ATS->" + stringBuffer1);
         }
 
@@ -686,6 +738,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                     while ((mNearestBle == null) && (searchCnt < 50000) && (mScanner.isScanning())) {
                         searchCnt++;
                         try {
+                            //Log.i("TileScanner", "connect to Update: Sleeping Thread while scanning");
                             Thread.sleep(1);
                         } catch (InterruptedException e) {
                             e.printStackTrace();
@@ -693,11 +746,12 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                     }
 
                     try {
+                        Log.i("TileScanner", "connect to Update: Sleeping Thread after scan comeplete");
                         Thread.sleep(500);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    mScanner.stopScan();
+                    //mScanner.stopScan();
                     if (mNearestBle != null && !deviceManager.isConnection()) {
                         mScanner.stopScan();
                         Log.i("TileScanner", "connect To Update: Connecting to Device");
@@ -716,7 +770,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     //Read card Demo
     private void readCardDemo() {
         readCardCnt++;
-        System.out.println("Activity Send scan/activate order");
+        Log.i("TileScanner", "Activity Send scan/activate order");
         deviceManager.requestRfmSearchCard((byte) 0x00, new DeviceManager.onReceiveRfnSearchCardListener() {
             @Override
             public void onReceiveRfnSearchCard(final boolean blnIsSus, int cardType, byte[] bytCardSn, byte[] bytCarATS) {
@@ -724,9 +778,19 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                 if ( !blnIsSus ) {
                     Log.i("TileScanner", "No card is found！Please put ShenZhen pass on the bluetooth card reading area first");
                     handler.sendEmptyMessage(0);
-                    System.out.println("No card is found！");
+                    Log.i("TileScanner", "No card is found！");
+                    hasSufferedAtLeastOneFailureToReadUID = true;
                     readCardFailCnt++;
-                    handler.sendEmptyMessage(4);
+
+                    runOnUiThread(new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            kegDataText.setText("No card detected");
+                        }
+                    });
+                    //handler.sendEmptyMessage(4);
                     return;
                 }
                 if ( cardType == DeviceManager.CARD_TYPE_ISO4443_B ) {   //Find ISO14443-B card（identity card）
@@ -1044,7 +1108,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             String str = formatter.format(curDate);
 
             if (deviceManager.isConnection()) {
-                Log.i("TileScanner", "Disconnect");
+                Log.i("TileScanner", "Ble is connected");
             }
             else {
                 Log.i("TileScanner", "Search device");
@@ -1082,7 +1146,12 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             else if (msg.what == 4) {
                 if (deviceManager.isConnection()) {
                     getMsgFlag = false;
-                    readCardDemo();
+
+                    Log.i("TileScanner", "Stuff is happening");
+
+                    scheduleCallForUID();
+
+                    /*readCardDemo();
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
@@ -1093,9 +1162,11 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                             }
                             if (getMsgFlag == false) {
                                 handler.sendEmptyMessage(4);
+
+
                             }
                         }
-                    }).start();
+                    }).start();*/
                 }
             }
             else if (msg.what == 5) {
@@ -1106,7 +1177,46 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         }
     };
 
+    private void scheduleCallForUID()
+    {
+        Log.i("TileScanner", " scheduling the next cycle of the call for uid loop");
+        tileReaderTimer.schedule(new TimerTask()
+        {
+            @Override
+            public void run()
+            {
+                if(!uidIsFound)
+                {
+                    Log.i("TileScanner", " running the next cycle of the call for uid loop");
+                    readCardDemo();
+                    scheduleCallForUID();
+                }
+                else
+                {
+                    scheduleRestartOfCallForUID();
+                }
+            }
+        }, 2000);
+    }
 
+    private void scheduleRestartOfCallForUID()
+    {
+        Log.i("TileScanner", " scheduling the restart of the call for uid loop");
+        tileReaderTimer.schedule(new TimerTask()
+        {
+            @Override
+            public void run()
+            {
+                if(uidIsFound)
+                {
+                    uidIsFound = false;
+                    hasSufferedAtLeastOneFailureToReadUID = false;
+                    Log.i("TileScanner", " restarting the call for uid loop");
+                    scheduleCallForUID();
+                }
+            }
+        }, 3000);
+    }
 
 //+++[/TileScanner Code]
 
