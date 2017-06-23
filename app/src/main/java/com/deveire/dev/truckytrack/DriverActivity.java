@@ -315,7 +315,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
         uidIsFound = false;
         hasSufferedAtLeastOneFailureToReadUID = true;
-        //connectToTileScanner();
+        tileReaderTimer = new Timer();
+        connectToTileScanner();
 
         //barReaderTimer = new Timer();
 
@@ -343,6 +344,17 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
         tileReaderTimer.cancel();
         tileReaderTimer.purge();
+
+        //if scanner is connected, disconnect it
+        if(deviceManager.isConnection())
+        {
+            connectToTileScanner();
+        }
+
+        if(mScanner.isScanning())
+        {
+            mScanner.stopScan();
+        }
 
         /*
         barReaderTimer.cancel();
@@ -673,8 +685,9 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                     @Override
                     public void run()
                     {
-                        Log.i("TileScanner", "callback received: UID = " + outUID);
+                        Log.i("TileScanner", "callback received: UID = " + outUID.toString());
                         kegDataText.setText(outUID);
+                        scanKeg(outUID.toString());
                     }
                 });
             }
@@ -1177,28 +1190,38 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         }
     };
 
+    //Recursive Method that schedules a call to the TileScanner to read the card currently on the scanner and return the UID. Then the method calls itself, creating a periodic call to the TileScanner.
+    //  ceases calling itself if a UID has already been received and then calls scheduleRestartOfCallForUID().
     private void scheduleCallForUID()
     {
-        Log.i("TileScanner", " scheduling the next cycle of the call for uid loop");
-        tileReaderTimer.schedule(new TimerTask()
+        try
         {
-            @Override
-            public void run()
+            Log.i("TileScanner", " scheduling the next cycle of the call for uid loop");
+            tileReaderTimer.schedule(new TimerTask()
             {
-                if(!uidIsFound)
+                @Override
+                public void run()
                 {
-                    Log.i("TileScanner", " running the next cycle of the call for uid loop");
-                    readCardDemo();
-                    scheduleCallForUID();
+                    if (!uidIsFound)
+                    {
+                        Log.i("TileScanner", " running the next cycle of the call for uid loop");
+                        readCardDemo();
+                        scheduleCallForUID();
+                    }
+                    else
+                    {
+                        scheduleRestartOfCallForUID();
+                    }
                 }
-                else
-                {
-                    scheduleRestartOfCallForUID();
-                }
-            }
-        }, 2000);
+            }, 2000);
+        }
+        catch (IllegalStateException e)
+        {
+            Log.e("TileScanner", "Timer has been canceled, aborting the call for uid loop");
+        }
     }
 
+    //Schedules a task to restart the recursive method scheduleCallForUID (and thus the periodic calling to the TileScanner to read the card) after a short delay.
     private void scheduleRestartOfCallForUID()
     {
         Log.i("TileScanner", " scheduling the restart of the call for uid loop");
@@ -1210,7 +1233,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                 if(uidIsFound)
                 {
                     uidIsFound = false;
-                    hasSufferedAtLeastOneFailureToReadUID = false;
+                    hasSufferedAtLeastOneFailureToReadUID = false; //is used to check if the previously read card was left on the scanner, preventing false positive readings.
+                    // If the card was removed then the scanner will report a failure to read.
                     Log.i("TileScanner", " restarting the call for uid loop");
                     scheduleCallForUID();
                 }
@@ -2244,3 +2268,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     }
 //**********[/Location Update and server pinging Code]
 }
+
+
+/*
+
+ */
