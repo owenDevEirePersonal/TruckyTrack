@@ -20,6 +20,8 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.ResultReceiver;
 import android.provider.Settings;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentActivity;
@@ -58,6 +60,7 @@ import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -79,6 +82,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private int itemID;
 
     private boolean hasState;
+
+    private TextToSpeech toSpeech;
 
     //[BLE Variables]
     private String storedScannerAddress;
@@ -292,6 +297,35 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
         pingingServerFor_KegData = false;
         kegDataText = (TextView) findViewById(R.id.kegDataText);
+
+        toSpeech = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status)
+            {
+
+            }
+        });
+        toSpeech.setLanguage(Locale.ENGLISH);
+        toSpeech.setOnUtteranceProgressListener(new UtteranceProgressListener()
+        {
+            @Override
+            public void onStart(String utteranceId)
+            {
+
+            }
+
+            @Override
+            public void onDone(String utteranceId)
+            {
+                toSpeech.shutdown();
+            }
+
+            @Override
+            public void onError(String utteranceId)
+            {
+
+            }
+        });
 
         setupTileScanner();
         //setupBluetoothScanner();
@@ -555,6 +589,26 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         }
     }
 
+    public void speakInstructions(String uidIn)
+    {
+        switch (uidIn)
+        {
+            case "0413b3caa74a81":
+                toSpeech.speak("Here are your instructions, Employee Number: " + uidIn.toString(), TextToSpeech.QUEUE_FLUSH, null);
+                toSpeech.speak(" 1. Please replace the toilet paper.", TextToSpeech.QUEUE_ADD, null);
+                toSpeech.speak(" 2. Replace the soap.", TextToSpeech.QUEUE_ADD, null);
+                toSpeech.speak(" 3. Go to the pub, grab a pint,, and wait for this whooole thing to blow over.", TextToSpeech.QUEUE_ADD, null);
+                break;
+            case "0433bf3aa94a81":
+                toSpeech.speak("Here are your instructions, Employee Number: " + uidIn.toString() + " , ", TextToSpeech.QUEUE_FLUSH, null);
+                toSpeech.speak(" 1. Please ask your supervisor for instructions.", TextToSpeech.QUEUE_ADD, null);
+                break;
+            default: toSpeech.speak("Your ID, " + uidIn.toString() + ", is not on record,", TextToSpeech.QUEUE_FLUSH, null);
+                toSpeech.speak("  please report to your supervisor.", TextToSpeech.QUEUE_ADD, null);
+                break;
+        }
+    }
+
 
 //+++[TileScanner Code]
     private void setupTileScanner()
@@ -687,7 +741,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                     {
                         Log.i("TileScanner", "callback received: UID = " + outUID.toString());
                         kegDataText.setText(outUID);
-                        scanKeg(outUID.toString());
+                        //scanKeg(outUID.toString());
+                        speakInstructions(outUID.toString());
                     }
                 });
             }
