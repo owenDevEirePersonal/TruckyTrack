@@ -1,5 +1,7 @@
 package com.deveire.dev.truckytrack;
 
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
@@ -14,8 +16,11 @@ import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -29,11 +34,16 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.vision.barcode.Barcode;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 
 public class ManagerActivity extends FragmentActivity implements AdapterView.OnItemSelectedListener, OnMapReadyCallback, GoogleApiClient.OnConnectionFailedListener, GoogleApiClient.ConnectionCallbacks, DownloadCallback<String>
 {
@@ -43,6 +53,12 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     private TextView mapText;
     private Spinner itemsSpinner;
     private EditText countText;
+    private Button dateButton;
+
+    Dialog datePickerDialog;
+    private final int datePickerDialogID = 99991;
+    private String startDate;
+    private String endDate;
 
     private ArrayList<String> itemIdsFromServer;
     private String currentItemID;
@@ -105,8 +121,26 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
 
         mapText = (TextView) findViewById(R.id.mapText);
         itemsSpinner = (Spinner) findViewById(R.id.spinner);
-        countText = (EditText) findViewById(R.id.editText);
-        countText.setText("" + numberOfResultsToRetrieve);
+        //countText = (EditText) findViewById(R.id.editText);
+        //countText.setText("" + numberOfResultsToRetrieve);
+
+        dateButton = (Button) findViewById(R.id.dateButton);
+        dateButton.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                openDatePickerDialog(false);
+            }
+        });
+
+
+        Calendar adate = Calendar.getInstance();
+        SimpleDateFormat adt = new SimpleDateFormat("yyyy-MM-dd");
+        startDate = adt.format(adate.getTime());
+        adate.add(Calendar.DATE, 1);
+        endDate = adt.format(adate.getTime());
+        Log.i("Date", startDate + "     " + endDate);
 
 
         userLocation = new Location("Truck Manager");
@@ -130,7 +164,6 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         mGoogleApiClient.connect();
 
         locationScanInterval = 60;//in seconds
-
 
 
 
@@ -219,7 +252,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         int i = 0;
         for (LatLng aloc: allCurrentItemLocations)
         {
-            if(currentItemID.matches("Current Keg Locations") || currentItemID.matches("09-05-2017 Latest") || currentItemID.matches("09-05-2017 All") || currentItemID.matches("10-05-2017 Latest") || currentItemID.matches("10-05-2017 All") || currentItemID.matches("11-05-2017 Latest") || currentItemID.matches("11-05-2017 All"))
+            if(currentItemID.matches("Current Keg Locations") || currentItemID.matches("Keg Deliveries Between"))
             {
                 mMap.addMarker(new MarkerOptions().position(aloc).title(allCurrentKegIDs.get(i)));
                 Log.i("Map Update", "Placing Keg Marker " + allCurrentKegIDs.get(i) + " at " + aloc.toString());
@@ -292,6 +325,17 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         Log.i("Dropdown Update", "Dropdown select, Loading retrieveKegLastLocations");
     }
 
+    private void retrieveKegAllLocationsBetweenDates(String inStartDate, String inEndDate)
+    {
+        pingingServerFor = pingingServerFor_Keg_Last_Locations;
+        serverURL = serverIPAddress + "?request=getkegslocationsbetweendates&startdate=" + inStartDate + "&enddate=" + inEndDate;
+        //lat and long are doubles, will cause issue? nope
+        Log.i("Network Update", "Attempting to start download from retrieveKegLocationsBetweenDates. " + serverURL);
+        aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
+
+        Log.i("Dropdown Update", "Dropdown select, Loading retrieveKegLastLocations");
+    }
+
     private boolean arrayContains(ArrayList<LatLng> array, LatLng bLatLng)
     {
         for (LatLng aLatLng: array)
@@ -319,44 +363,19 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
         }
         else if(pos == itemIdsFromServer.size() - 2)
         {
-            Log.i("Dropdown Update", "Dropdown select, ItemID now equals 2017-05-10");
-            retrieveKegLastLocationsOnDate("2017-05-11");
-        }
-        else if(pos == itemIdsFromServer.size() - 3)
-        {
-            Log.i("Dropdown Update", "Dropdown select, ItemID now equals 2017-05-10");
-            retrieveKegAllLocationsOnDate("2017-05-11");
-        }
-        else if(pos == itemIdsFromServer.size() - 4)
-        {
-            Log.i("Dropdown Update", "Dropdown select, ItemID now equals 2017-05-10");
-            retrieveKegLastLocationsOnDate("2017-05-10");
-        }
-        else if(pos == itemIdsFromServer.size() - 5)
-        {
-            Log.i("Dropdown Update", "Dropdown select, ItemID now equals 2017-05-10");
-            retrieveKegAllLocationsOnDate("2017-05-10");
-        }
-        else if(pos == itemIdsFromServer.size() - 6)
-        {
-            Log.i("Dropdown Update", "Dropdown select, ItemID now equals 2017-05-10");
-            retrieveKegLastLocationsOnDate("2017-05-09");
-        }
-        else if(pos == itemIdsFromServer.size() - 7)
-        {
-            Log.i("Dropdown Update", "Dropdown select, ItemID now equals 2017-05-10");
-            retrieveKegAllLocationsOnDate("2017-05-09");
+            Log.i("Dropdown Update", "Dropdown select, ItemID now equals Keg Deliveries Between");
+            retrieveKegAllLocationsBetweenDates(startDate, endDate);
         }
         else
         {
             Log.i("Dropdown Update", "Dropdown select, ItemID now equals " + parent.getItemAtPosition(pos));
             try
             {
-                numberOfResultsToRetrieve = Integer.getInteger(countText.getText().toString());
+                //numberOfResultsToRetrieve = Integer.getInteger(countText.getText().toString());
             } catch (Exception e)
             {
                 numberOfResultsToRetrieve = 10;
-                countText.setText("" + numberOfResultsToRetrieve);
+                //countText.setText("" + numberOfResultsToRetrieve);
             }
             retrieveLocations();
         }
@@ -378,14 +397,87 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
 
         try
         {
-            numberOfResultsToRetrieve = Integer.getInteger(countText.getText().toString());
+            //numberOfResultsToRetrieve = Integer.getInteger(countText.getText().toString());
         }
         catch (Exception e)
         {
             numberOfResultsToRetrieve = 10;
-            countText.setText("" + numberOfResultsToRetrieve);
+            //countText.setText("" + numberOfResultsToRetrieve);
         }
         retrieveLocations();
+    }
+
+    private void openDatePickerDialog(boolean isEndDatePicker)
+    {
+        Context context = ManagerActivity.this;
+        datePickerDialog = new Dialog(context);
+        datePickerDialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        datePickerDialog.setContentView(R.layout.dialog_datepicker);
+
+        Button okButton = (Button) datePickerDialog.findViewById(R.id.okButton);
+        TextView datePickerText = (TextView) datePickerDialog.findViewById(R.id.pickDateText);
+        final DatePicker aDatePicker = (DatePicker) datePickerDialog.findViewById(R.id.startDatePicker);
+        if(isEndDatePicker)
+        {
+            datePickerText.setText("Pick End Date");
+            okButton.setOnClickListener(new View.OnClickListener()
+            {
+                @Override
+                public void onClick(View v)
+                {
+                    String dateString = aDatePicker.getDayOfMonth() + " " + (aDatePicker.getMonth() + 1) + " " + aDatePicker.getYear();
+                    SimpleDateFormat dt = new SimpleDateFormat("dd MM yyyy");
+                    try
+                    {
+                        Date adate = dt.parse(dateString);
+                        dt = new SimpleDateFormat("yyyy-MM-dd");
+                        dateString = dt.format(adate);
+                    }
+                    catch (ParseException e)
+                    {
+                        Log.e("Date", "error");
+                    }
+                    Log.i("Date", "New End Date: " + dateString);
+                    endDate = dateString;
+                    datePickerDialog.dismiss();
+                    if(currentItemID.matches("Keg Deliveries Between"))
+                    {
+                        retrieveKegAllLocationsBetweenDates(startDate, endDate);
+                    }
+                }
+            });
+        }
+        else
+        {
+            datePickerText.setText("Pick Start Date");
+            okButton.setOnClickListener(new View.OnClickListener()
+            {
+                @Override
+                public void onClick(View v)
+                {
+                    String dateString = aDatePicker.getDayOfMonth() + " " + (aDatePicker.getMonth() + 1) + " " + aDatePicker.getYear();
+                    SimpleDateFormat dt = new SimpleDateFormat("dd MM yyyy");
+                    try
+                    {
+                        Date adate = dt.parse(dateString);
+                        dt = new SimpleDateFormat("yyyy-MM-dd");
+                        dateString = dt.format(adate);
+                    }
+                    catch (ParseException e)
+                    {
+                        Log.e("Date", "error");
+                    }
+                    Log.i("Date", "New Start Date: " + dateString);
+                    startDate = dateString;
+                    datePickerDialog.dismiss();
+                    openDatePickerDialog(true);
+                }
+            });
+        }
+
+
+        datePickerDialog.show();
+
     }
 
 
@@ -465,12 +557,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
                             itemIdsFromServer.add(jsonResultFromServer.getJSONObject(i).getString("name"));
                         }
 
-                        itemIdsFromServer.add("09-05-2017 Latest");
-                        itemIdsFromServer.add("09-05-2017 All");
-                        itemIdsFromServer.add("10-05-2017 Latest");
-                        itemIdsFromServer.add("10-05-2017 All");
-                        itemIdsFromServer.add("11-05-2017 Latest");
-                        itemIdsFromServer.add("11-05-2017 All");
+                        itemIdsFromServer.add("Keg Deliveries Between");
                         itemIdsFromServer.add("Current Keg Locations");
 
 
@@ -612,7 +699,7 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
             //[JURY RIGGED irregular distances between long and lat, solution]
 
             //if the user is looking at the current last known locations of kegs then do nothing, as ALL keg locations are retrieve when the user selects that option. else retrieve the locations within viewport.
-            if(!(currentItemID.matches("Current Keg Locations") || currentItemID.matches("09-05-2017 Latest")  || currentItemID.matches("09-05-2017 All")  || currentItemID.matches("10-05-2017 Latest") || currentItemID.matches("10-05-2017 All") || currentItemID.matches("11-05-2017 Latest") || currentItemID.matches("11-05-2017 All")))
+            if(!(currentItemID.matches("Current Keg Locations") || currentItemID.matches("Keg Deliveries Between")))
             {
                 retrieveLocations(viewportCentre, viewportRadius);
             }
