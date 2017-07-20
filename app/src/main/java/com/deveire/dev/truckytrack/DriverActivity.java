@@ -2001,7 +2001,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic)
         {
             super.onCharacteristicChanged(gatt, characteristic);
-
+            
             //Insert get characteristic logic to retrieve the uuid scanned here.
         }
 
