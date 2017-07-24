@@ -7,83 +7,17 @@
     android:layout_height="match_parent">
 
     <TextView
-        android:id="@+id/mapText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="TextView"
-        map:layout_constraintTop_toTopOf="parent"
-        tools:layout_editor_absoluteX="8dp"/>
-
-    <EditText
-        android:id="@+id/nameEditText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:ems="10"
-        android:inputType="textPersonName"
-        android:text="Name"
-        android:layout_marginRight="8dp"
-        map:layout_constraintRight_toRightOf="parent"
-        map:layout_constraintLeft_toRightOf="@+id/mapText"
-        android:layout_marginLeft="8dp"
-        map:layout_constraintHorizontal_bias="1.0"
-        map:layout_constraintTop_toTopOf="parent"
-        android:layout_marginTop="8dp"
-        />
-
-    <EditText
-        android:id="@+id/kegIDEditText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginLeft="8dp"
-        android:layout_marginRight="8dp"
-        android:layout_marginTop="65dp"
-        android:ems="10"
-        android:inputType="textNoSuggestions"
-        map:layout_constraintHorizontal_bias="1.0"
-        map:layout_constraintLeft_toRightOf="@+id/mapText"
-        map:layout_constraintRight_toRightOf="parent"
-        map:layout_constraintTop_toTopOf="parent"
-        />
-
-    <Button
-        android:id="@+id/scanKegButton"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:enabled="false"
-        android:text="Scan Keg"
-        map:layout_constraintTop_toBottomOf="@+id/mapText"
-        tools:layout_editor_absoluteX="16dp"/>
-
-    <Button
-        android:id="@+id/pairReaderButton"
-        android:layout_width="117dp"
-        android:layout_height="62dp"
-        android:layout_marginLeft="0dp"
-        android:layout_marginRight="0dp"
-        android:layout_marginTop="11dp"
-        android:enabled="false"
-        android:text="Pair Reader"
-        map:layout_constraintHorizontal_bias="0.0"
-        map:layout_constraintLeft_toLeftOf="@+id/scanKegButton"
-        map:layout_constraintRight_toLeftOf="@+id/kegIDEditText"
-        map:layout_constraintTop_toBottomOf="@+id/scanKegButton"/>
-
-    <TextView
         android:id="@+id/kegDataText"
         android:layout_width="0dp"
         android:layout_height="136dp"
         android:layout_marginBottom="-1dp"
         android:layout_marginLeft="8dp"
         android:layout_marginRight="8dp"
-        android:layout_marginTop="8dp"
         android:text="TextView"
         map:layout_constraintBottom_toBottomOf="parent"
         map:layout_constraintHorizontal_bias="1.0"
         map:layout_constraintLeft_toLeftOf="parent"
         map:layout_constraintRight_toRightOf="parent"
-        map:layout_constraintTop_toBottomOf="@+id/pairReaderButton"
-        map:layout_constraintVertical_bias="0.99"/>
+        />
 </android.support.constraint.ConstraintLayout>
 

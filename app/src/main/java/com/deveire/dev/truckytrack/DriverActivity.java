@@ -61,7 +61,7 @@ import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class DriverActivity extends FragmentActivity implements GoogleApiClient.OnConnectionFailedListener, GoogleApiClient.ConnectionCallbacks, LocationListener, DownloadCallback<String>
+public class DriverActivity extends FragmentActivity /*implements GoogleApiClient.OnConnectionFailedListener, GoogleApiClient.ConnectionCallbacks, LocationListener, DownloadCallback<String>*/
 {
 
     private GoogleMap mMap;
@@ -120,6 +120,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private boolean uidIsFound;
     private boolean hasSufferedAtLeastOneFailureToReadUID;
 
+    private boolean stopAllScans;
+
     //[/Tile Reader Variables]
 
     /*[Bar Reader Variables]
@@ -155,7 +157,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private GoogleApiClient mGoogleApiClient;
     private Location locationReceivedFromLocationUpdates;
     private Location userLocation;
-    private DriverActivity.AddressResultReceiver geoCoderServiceResultReciever;
+    //private DriverActivity.AddressResultReceiver geoCoderServiceResultReciever;
     private int locationScanInterval;
 
     LocationRequest request;
@@ -180,12 +182,12 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
 
         mapText = (TextView) findViewById(R.id.mapText);
-        nameEditText = (EditText) findViewById(R.id.nameEditText);
+        /*nameEditText = (EditText) findViewById(R.id.nameEditText);
         kegIDEditText = (EditText) findViewById(R.id.kegIDEditText);
-        scanKegButton = (Button) findViewById(R.id.scanKegButton);
+        scanKegButton = (Button) findViewById(R.id.scanKegButton);*/
 
 
-        scanKegButton.setOnClickListener(new View.OnClickListener()
+        /*scanKegButton.setOnClickListener(new View.OnClickListener()
         {
             @Override
             public void onClick(View v)
@@ -194,9 +196,9 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                 //Log.i("Scanner Connection", "current card status = " + currentCardStatus);
                 //transmitApdu();
             }
-        });
+        });*/
 
-        pairReaderButton = (Button) findViewById(R.id.pairReaderButton);
+        /*pairReaderButton = (Button) findViewById(R.id.pairReaderButton);
         pairReaderButton.setOnClickListener(new View.OnClickListener()
         {
             @Override
@@ -208,9 +210,9 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                 /*if(btAdapter != null)
                 {
                     btAdapter.startLeScan(leScanCallback);
-                }*/
+                }*
             }
-        });
+        });*/
 
         hasState = true;
 
@@ -218,10 +220,10 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         userLocation.setLatitude(0);
         userLocation.setLongitude(0);
 
-        savedData = this.getApplicationContext().getSharedPreferences("TruckyTrack SavedData", Context.MODE_PRIVATE);
+        /*savedData = this.getApplicationContext().getSharedPreferences("TruckyTrack SavedData", Context.MODE_PRIVATE);
         itemName = savedData.getString("itemName", "Unknown");
         itemID = savedData.getInt("itemID", 0);
-        nameEditText.setText(itemName);
+        nameEditText.setText(itemName);*/
 
 
         pingingServer = false;
@@ -230,13 +232,13 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         serverURL = serverIPAddress + "?request=storelocation" + Settings.Secure.ANDROID_ID.toString() + "&name=" + itemName + "&lat=" + 0000 + "&lon=" + 0000;
 
 
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
+        /*mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .addApi(LocationServices.API)
                 .build();
 
-        mGoogleApiClient.connect();
+        mGoogleApiClient.connect();*/
 
         locationScanInterval = 60;//in seconds
 
@@ -246,7 +248,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         request.setFastestInterval(5000);//caps how fast the locations are recieved, as other apps could be triggering updates faster than our app.
         request.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY); //accurate to 100 meters.
 
-        LocationSettingsRequest.Builder requestBuilder = new LocationSettingsRequest.Builder().addLocationRequest(request);
+        /*LocationSettingsRequest.Builder requestBuilder = new LocationSettingsRequest.Builder().addLocationRequest(request);
 
         PendingResult<LocationSettingsResult> result =
                 LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient,
@@ -285,9 +287,9 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                         break;
                 }
             }
-        });
+        });*/
 
-        geoCoderServiceResultReciever = new DriverActivity.AddressResultReceiver(new Handler());
+        //geoCoderServiceResultReciever = new DriverActivity.AddressResultReceiver(new Handler());
 
 
         pingingServerFor_KegData = false;
@@ -345,16 +347,18 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         tileReaderTimer.cancel();
         tileReaderTimer.purge();
 
-        //if scanner is connected, disconnect it
         if(deviceManager.isConnection())
         {
-            connectToTileScanner();
+            stopAllScans = true;
+            deviceManager.requestDisConnectDevice();
         }
 
+        //if scanner is connected, disconnect it
         if(mScanner.isScanning())
         {
             mScanner.stopScan();
         }
+
 
         /*
         barReaderTimer.cancel();
@@ -385,14 +389,14 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     {
         hasState = false;
 
-        SharedPreferences.Editor edit = savedData.edit();
+        /*SharedPreferences.Editor edit = savedData.edit();
         edit.putString("itemName", nameEditText.getText().toString());
         edit.putInt("itemID", itemID);
 
         //edit.putString("ScannerMacAddress", storedScannerAddress);
 
 
-        edit.commit();
+        edit.commit();*/
 
         /*
         if(btGatt != null)
@@ -401,6 +405,18 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             btGatt.close();
         }
         */
+
+        if(deviceManager.isConnection())
+        {
+            deviceManager.requestDisConnectDevice();
+        }
+
+        //if scanner is connected, disconnect it
+        if(mScanner.isScanning())
+        {
+            mScanner.stopScan();
+        }
+
 
         super.onStop();
     }
@@ -582,6 +598,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         uidIsFound = false;
         hasSufferedAtLeastOneFailureToReadUID = false;
 
+        stopAllScans = false;
+
         connectToTileScanner();
     }
 
@@ -687,7 +705,12 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                     {
                         Log.i("TileScanner", "callback received: UID = " + outUID.toString());
                         kegDataText.setText(outUID);
-                        scanKeg(outUID.toString());
+                        Intent aIntent = new Intent(getApplicationContext(), QuestionaireActivity.class);
+                        aIntent.putExtra("cardUID", (CharSequence) outUID);
+                        startActivity(aIntent);
+
+
+                        //scanKeg(outUID.toString());
                     }
                 });
             }
@@ -748,7 +771,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                     }
 
                     int searchCnt = 0;
-                    while ((mNearestBle == null) && (searchCnt < 50000) && (mScanner.isScanning())) {
+                    while ((mNearestBle == null) && (searchCnt < 1000) && (mScanner.isScanning())) {
                         searchCnt++;
                         try {
                             //Log.i("TileScanner", "connect to Update: Sleeping Thread while scanning");
@@ -1185,7 +1208,10 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             else if (msg.what == 5) {
                 disconnectCnt++;
                 //searchButton.performClick();
-                connectToTileScanner();
+                if(!stopAllScans)
+                {
+                    connectToTileScanner();
+                }
             }
         }
     };
@@ -2037,8 +2063,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
 
 //**********[Location Update and server pinging Code]
-    @Override
-    public void onConnectionFailed(ConnectionResult result) {
+   //* @Override
+    /*public void onConnectionFailed(ConnectionResult result) {
         // An unresolvable error has occurred and a connection to Google APIs
         // could not be established. Display an error message, or handle
         // the failure silently
@@ -2081,10 +2107,10 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     public void onConnectionSuspended(int i)
     {
         //put other stuff here
-    }
+    }*/
 
     //update app based on the new location data, and then begin pinging servlet with the new location
-    @Override
+    /*@Override
     public void onLocationChanged(Location location)
     {
         locationReceivedFromLocationUpdates = location;
@@ -2117,7 +2143,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             Log.e("ERROR", "Unable to send location to sevrver, current location = null");
         }
 
-    }
+    }*/
 
 
     @Override
@@ -2144,7 +2170,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         }
     }
 
-    protected void startIntentService() {
+    /*protected void startIntentService() {
         Intent intent = new Intent(this, geoCoderIntent.class);
         intent.putExtra(Constants.RECEIVER, geoCoderServiceResultReciever);
         intent.putExtra(Constants.LOCATION_DATA_EXTRA, locationReceivedFromLocationUpdates);
@@ -2265,7 +2291,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             }
 
         }
-    }
+    }*/
 //**********[/Location Update and server pinging Code]
 }
 

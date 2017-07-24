@@ -51,6 +51,8 @@
         </activity>
         <activity android:name=".PairingActivity">
         </activity>
+        <activity android:name=".QuestionaireActivity">
+        </activity>
     </application>
 
 </manifest>
