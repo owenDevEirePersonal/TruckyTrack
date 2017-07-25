@@ -195,6 +195,10 @@ public class QuestionaireActivity extends AppCompatActivity implements questionF
     {
         Log.i("Questionaire", "Setting up questionaire UID = " + inUID);
         table.removeAllViews();
+        final RadioButton row1No;
+        final RadioButton row1Yes;
+        final RadioButton row2No;
+        final RadioButton row2Yes;
         switch (inUID)
         {
             case "0433bf3aa94a81":
@@ -204,6 +208,8 @@ public class QuestionaireActivity extends AppCompatActivity implements questionF
                 /* Create a Button to be the row-content. */
                 RadioButton y = new RadioButton(this);
                 RadioButton n = new RadioButton(this);
+                row1No = n;
+                row1Yes = y;
                 y.setText("Yes");
                 y.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
                 y.setOnClickListener(new View.OnClickListener()
@@ -211,7 +217,7 @@ public class QuestionaireActivity extends AppCompatActivity implements questionF
                     @Override
                     public void onClick(View v)
                     {
-
+                        row1No.setChecked(false);
                     }
                 });
                 n.setText("No");
@@ -221,7 +227,7 @@ public class QuestionaireActivity extends AppCompatActivity implements questionF
                     @Override
                     public void onClick(View v)
                     {
-
+                        row1Yes.setChecked(false);
                     }
                 });
                 /* Add Button to row. */
@@ -241,6 +247,8 @@ public class QuestionaireActivity extends AppCompatActivity implements questionF
                 /* Create a Button to be the row-content. */
                 RadioButton y2 = new RadioButton(this);
                 RadioButton n2 = new RadioButton(this);
+                row2Yes = y2;
+                row2No = n2;
                 y2.setText("Yes");
                 y2.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
                 y2.setOnClickListener(new View.OnClickListener()
@@ -248,7 +256,7 @@ public class QuestionaireActivity extends AppCompatActivity implements questionF
                     @Override
                     public void onClick(View v)
                     {
-
+                        row2No.setChecked(false);
                     }
                 });
                 n2.setText("No");
@@ -258,13 +266,13 @@ public class QuestionaireActivity extends AppCompatActivity implements questionF
                     @Override
                     public void onClick(View v)
                     {
-
+                        row2Yes.setChecked(false);
                     }
                 });
                 /* Add Button to row. */
                 TextView text2 = new TextView(this);
                 text2.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
-                text2.setText("Do you like this thing? ");
+                text2.setText("Do you like this thing's colour? ");
                 tr2.addView(text2);
                 tr2.addView(y2);
                 tr2.addView(n2);
@@ -283,6 +291,8 @@ public class QuestionaireActivity extends AppCompatActivity implements questionF
                 /* Create a Button to be the row-content. */
                 RadioButton y3 = new RadioButton(this);
                 RadioButton n3 = new RadioButton(this);
+                row1Yes = y3;
+                row1No = n3;
                 y3.setText("Yes");
                 y3.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
                 y3.setOnClickListener(new View.OnClickListener()
@@ -290,7 +300,7 @@ public class QuestionaireActivity extends AppCompatActivity implements questionF
                     @Override
                     public void onClick(View v)
                     {
-
+                        row1No.setChecked(false);
                     }
                 });
                 n3.setText("No");
@@ -300,20 +310,33 @@ public class QuestionaireActivity extends AppCompatActivity implements questionF
                     @Override
                     public void onClick(View v)
                     {
-
+                        row1Yes.setChecked(false);
                     }
                 });
                 /* Add Button to row. */
                 TextView text3 = new TextView(this);
                 text3.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
-                text3.setText("Do you like this thing? ");
+                text3.setText("Is this price to your liking? ");
                 tr3.addView(text3);
                 tr3.addView(y3);
                 tr3.addView(n3);
                 /* Add row to TableLayout. */
                 //tr.setBackgroundResource(R.drawable.sf_gradient_03);
                 table.addView(tr3, new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT, TableLayout.LayoutParams.WRAP_CONTENT));
-                
+
+                TableRow tr4 = new TableRow(this);
+                tr4.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT));
+
+                /* Add Button to row. */
+                TextView text4 = new TextView(this);
+                text4.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
+                text4.setText("This product costs: 999999999999999999.99€ + vat");
+                text4.setTextSize(25);
+                tr4.addView(text4);
+                /* Add row to TableLayout. */
+                //tr.setBackgroundResource(R.drawable.sf_gradient_03);
+                table.addView(tr4, new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT, TableLayout.LayoutParams.WRAP_CONTENT));
+
                 debugText.setText("Loading Questionaire for some other thing");
                 break;
         }
