@@ -68,7 +68,7 @@ public class MainActivity extends Activity
             @Override
             public void onClick(View v)
             {
-                startActivity(new Intent(getApplicationContext(), DriverActivity.class));
+                startActivity(new Intent(getApplicationContext(), QuestionaireActivity.class));
             }
         });
 

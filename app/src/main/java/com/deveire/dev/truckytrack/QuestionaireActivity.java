@@ -3,16 +3,13 @@ package com.deveire.dev.truckytrack;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothDevice;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.IntentFilter;
-import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.widget.Button;
 import android.widget.RadioButton;
 import android.widget.TableLayout;
 import android.widget.TableRow;
@@ -28,17 +25,23 @@ import com.deveire.dev.truckytrack.bleNfc.card.Iso14443bCard;
 import com.deveire.dev.truckytrack.bleNfc.card.Mifare;
 import com.deveire.dev.truckytrack.bleNfc.card.Ntag21x;
 import com.deveire.dev.truckytrack.bleNfc.card.SZTCard;
-import com.google.android.gms.vision.text.Text;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import layout.questionFragment;
-
-public class QuestionaireActivity extends AppCompatActivity implements questionFragment.OnFragmentInteractionListener
+public class QuestionaireActivity extends AppCompatActivity
 {
+    private TextView debugText;
+    private TableLayout table;
+
+    private RadioButton row1No;
+    private RadioButton row1Yes;
+    private RadioButton row2No;
+    private RadioButton row2Yes;
+
+
 
     //[Tile Reader Variables]
     private DeviceManager deviceManager;
@@ -64,8 +67,7 @@ public class QuestionaireActivity extends AppCompatActivity implements questionF
 
     //[/Tile Reader Variables]
 
-    private TextView debugText;
-    private TableLayout table;
+
 
 
     @Override
@@ -195,152 +197,173 @@ public class QuestionaireActivity extends AppCompatActivity implements questionF
     {
         Log.i("Questionaire", "Setting up questionaire UID = " + inUID);
         table.removeAllViews();
-        final RadioButton row1No;
-        final RadioButton row1Yes;
-        final RadioButton row2No;
-        final RadioButton row2Yes;
+
         switch (inUID)
         {
             case "0433bf3aa94a81":
-                /* Create a new row to be added. */
-                TableRow tr = new TableRow(this);
-                tr.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT));
-                /* Create a Button to be the row-content. */
-                RadioButton y = new RadioButton(this);
-                RadioButton n = new RadioButton(this);
-                row1No = n;
-                row1Yes = y;
-                y.setText("Yes");
-                y.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
-                y.setOnClickListener(new View.OnClickListener()
-                {
-                    @Override
-                    public void onClick(View v)
-                    {
-                        row1No.setChecked(false);
-                    }
-                });
-                n.setText("No");
-                n.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
-                n.setOnClickListener(new View.OnClickListener()
-                {
-                    @Override
-                    public void onClick(View v)
-                    {
-                        row1Yes.setChecked(false);
-                    }
-                });
-                /* Add Button to row. */
-                TextView text = new TextView(this);
-                text.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
-                text.setText("Do you like this thing? ");
-                tr.addView(text);
-                tr.addView(y);
-                tr.addView(n);
-                /* Add row to TableLayout. */
-                //tr.setBackgroundResource(R.drawable.sf_gradient_03);
-                table.addView(tr, new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT, TableLayout.LayoutParams.WRAP_CONTENT));
-
-
-                TableRow tr2 = new TableRow(this);
-                tr.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT));
-                /* Create a Button to be the row-content. */
-                RadioButton y2 = new RadioButton(this);
-                RadioButton n2 = new RadioButton(this);
-                row2Yes = y2;
-                row2No = n2;
-                y2.setText("Yes");
-                y2.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
-                y2.setOnClickListener(new View.OnClickListener()
-                {
-                    @Override
-                    public void onClick(View v)
-                    {
-                        row2No.setChecked(false);
-                    }
-                });
-                n2.setText("No");
-                n2.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
-                n2.setOnClickListener(new View.OnClickListener()
-                {
-                    @Override
-                    public void onClick(View v)
-                    {
-                        row2Yes.setChecked(false);
-                    }
-                });
-                /* Add Button to row. */
-                TextView text2 = new TextView(this);
-                text2.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
-                text2.setText("Do you like this thing's colour? ");
-                tr2.addView(text2);
-                tr2.addView(y2);
-                tr2.addView(n2);
-                /* Add row to TableLayout. */
-                //tr.setBackgroundResource(R.drawable.sf_gradient_03);
-                table.addView(tr2, new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT, TableLayout.LayoutParams.WRAP_CONTENT));
-
+                loadQuestions1();
                 debugText.setText("Loading Questionaire for Jim's Good Shoe #14");
                 break;
 
+
             default:
-
-                /* Create a new row to be added. */
-                TableRow tr3 = new TableRow(this);
-                tr3.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT));
-                /* Create a Button to be the row-content. */
-                RadioButton y3 = new RadioButton(this);
-                RadioButton n3 = new RadioButton(this);
-                row1Yes = y3;
-                row1No = n3;
-                y3.setText("Yes");
-                y3.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
-                y3.setOnClickListener(new View.OnClickListener()
-                {
-                    @Override
-                    public void onClick(View v)
-                    {
-                        row1No.setChecked(false);
-                    }
-                });
-                n3.setText("No");
-                n3.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
-                n3.setOnClickListener(new View.OnClickListener()
-                {
-                    @Override
-                    public void onClick(View v)
-                    {
-                        row1Yes.setChecked(false);
-                    }
-                });
-                /* Add Button to row. */
-                TextView text3 = new TextView(this);
-                text3.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
-                text3.setText("Is this price to your liking? ");
-                tr3.addView(text3);
-                tr3.addView(y3);
-                tr3.addView(n3);
-                /* Add row to TableLayout. */
-                //tr.setBackgroundResource(R.drawable.sf_gradient_03);
-                table.addView(tr3, new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT, TableLayout.LayoutParams.WRAP_CONTENT));
-
-                TableRow tr4 = new TableRow(this);
-                tr4.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT));
-
-                /* Add Button to row. */
-                TextView text4 = new TextView(this);
-                text4.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
-                text4.setText("This product costs: 999999999999999999.99€ + vat");
-                text4.setTextSize(25);
-                tr4.addView(text4);
-                /* Add row to TableLayout. */
-                //tr.setBackgroundResource(R.drawable.sf_gradient_03);
-                table.addView(tr4, new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT, TableLayout.LayoutParams.WRAP_CONTENT));
-
+                loadQuestions2();
                 debugText.setText("Loading Questionaire for some other thing");
                 break;
         }
     }
+
+    private void loadQuestions1()
+    {
+        TextView text;
+        RadioButton y;
+        RadioButton n;
+        TableRow tr;
+
+        /* Create a new row to be added. */
+        tr = new TableRow(this);
+        tr.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT));
+                /* Create a Button to be the row-content. */
+        y = new RadioButton(this);
+        n = new RadioButton(this);
+        row1No = n;
+        row1Yes = y;
+        y.setText("Yes");
+        y.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
+        y.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                row1No.setChecked(false);
+            }
+        });
+        n.setText("No");
+        n.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
+        n.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                row1Yes.setChecked(false);
+            }
+        });
+                /* Add Button to row. */
+        text = new TextView(this);
+        text.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
+        text.setText("Do you like this thing? ");
+        tr.addView(text);
+        tr.addView(y);
+        tr.addView(n);
+                /* Add row to TableLayout. */
+        //tr.setBackgroundResource(R.drawable.sf_gradient_03);
+        table.addView(tr, new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT, TableLayout.LayoutParams.WRAP_CONTENT));
+
+
+        tr = new TableRow(this);
+        tr.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT));
+                /* Create a Button to be the row-content. */
+        y = new RadioButton(this);
+        n = new RadioButton(this);
+        row2Yes = y;
+        row2No = n;
+        y.setText("Yes");
+        y.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
+        y.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                row2No.setChecked(false);
+            }
+        });
+        n.setText("No");
+        n.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
+        n.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                row2Yes.setChecked(false);
+            }
+        });
+                /* Add Button to row. */
+        text = new TextView(this);
+        text.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
+        text.setText("Do you like this thing's colour? ");
+        tr.addView(text);
+        tr.addView(y);
+        tr.addView(n);
+                /* Add row to TableLayout. */
+        //tr.setBackgroundResource(R.drawable.sf_gradient_03);
+        table.addView(tr, new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT, TableLayout.LayoutParams.WRAP_CONTENT));
+    }
+
+    private void loadQuestions2()
+    {
+        TextView text;
+        RadioButton y;
+        RadioButton n;
+        TableRow tr;
+
+        /* Create a new row to be added. */
+        tr = new TableRow(this);
+        tr.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT));
+                /* Create a Button to be the row-content. */
+        y = new RadioButton(this);
+        n = new RadioButton(this);
+        row1Yes = y;
+        row1No = n;
+        y.setText("Yes");
+        y.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
+        y.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                row1No.setChecked(false);
+            }
+        });
+        n.setText("No");
+        n.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
+        n.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                row1Yes.setChecked(false);
+            }
+        });
+                /* Add Button to row. */
+        text = new TextView(this);
+        text.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
+        text.setText("Is this price to your liking? ");
+        tr.addView(text);
+        tr.addView(y);
+        tr.addView(n);
+                /* Add row to TableLayout. */
+        //tr.setBackgroundResource(R.drawable.sf_gradient_03);
+        table.addView(tr, new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT, TableLayout.LayoutParams.WRAP_CONTENT));
+
+        tr = new TableRow(this);
+        tr.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT));
+
+                /* Add Button to row. */
+        text = new TextView(this);
+        text.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT));
+        text.setText("This product costs: 999999999999999999.99€ + vat");
+        text.setTextSize(25);
+        tr.addView(text);
+                /* Add row to TableLayout. */
+        //tr.setBackgroundResource(R.drawable.sf_gradient_03);
+        table.addView(tr, new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT, TableLayout.LayoutParams.WRAP_CONTENT));
+
+    }
+
+
+
+
+
 
     //+++[TileScanner Code]
     private void setupTileScanner()
@@ -1035,12 +1058,5 @@ public class QuestionaireActivity extends AppCompatActivity implements questionF
             }
         }, 3000);
     }
-
-    @Override
-    public void onFragmentInteraction(Uri uri)
-    {
-
-    }
-
 //+++[/TileScanner Code]
 }
