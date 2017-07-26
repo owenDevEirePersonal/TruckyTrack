@@ -120,6 +120,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private boolean uidIsFound;
     private boolean hasSufferedAtLeastOneFailureToReadUID;
 
+    private boolean stopAllScans;
+
     //[/Tile Reader Variables]
 
     /*[Bar Reader Variables]
@@ -316,6 +318,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         uidIsFound = false;
         hasSufferedAtLeastOneFailureToReadUID = true;
         tileReaderTimer = new Timer();
+        stopAllScans = false;
         connectToTileScanner();
 
         //barReaderTimer = new Timer();
@@ -340,7 +343,6 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             aNetworkFragment.cancelDownload();
         }
 
-        //TODO: Add disconnect tileReader
 
         tileReaderTimer.cancel();
         tileReaderTimer.purge();
@@ -348,9 +350,11 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         //if scanner is connected, disconnect it
         if(deviceManager.isConnection())
         {
-            connectToTileScanner();
+            stopAllScans = true;
+            deviceManager.requestDisConnectDevice();
         }
 
+        //if scanner is connected, disconnect it
         if(mScanner.isScanning())
         {
             mScanner.stopScan();
@@ -1185,7 +1189,10 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             else if (msg.what == 5) {
                 disconnectCnt++;
                 //searchButton.performClick();
-                connectToTileScanner();
+                if(!stopAllScans)
+                {
+                    connectToTileScanner();
+                }
             }
         }
     };
