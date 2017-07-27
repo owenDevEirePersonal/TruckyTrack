@@ -59,6 +59,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Timer;
@@ -99,10 +100,11 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private BluetoothReaderGattCallback btLeGattCallback;
     //[/BLE Variables]
 
-    //[Retreive Keg Data Variables]
-    private Boolean pingingServerFor_KegData;
-    private TextView kegDataText;
-    //[/Retreive Keg Data Variables]
+    //[Retreive Alert Data Variables]
+    private Boolean pingingServerFor_alertData;
+    private TextView alertDataText;
+    private String currentUID;
+    //[/Retreive Alert Data Variables]
 
 
     //[Tile Reader Variables]
@@ -170,7 +172,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private final String SAVED_LOCATION_KEY = "79";
 
     private boolean pingingServer;
-    private final String serverIPAddress = "http://192.168.1.188:8080/TruckyTrackServlet/TTServlet";
+    private final String serverIPAddress = "http://192.168.1.188:8080/InstructaConServlet/ICServlet";
     //private final String serverIPAddress = "http://api.eirpin.com/api/TTServlet";
     private String serverURL;
     private NetworkFragment aNetworkFragment;
@@ -297,8 +299,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         geoCoderServiceResultReciever = new DriverActivity.AddressResultReceiver(new Handler());
 
 
-        pingingServerFor_KegData = false;
-        kegDataText = (TextView) findViewById(R.id.kegDataText);
+        pingingServerFor_alertData = false;
+        alertDataText = (TextView) findViewById(R.id.kegDataText);
 
         toSpeech = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
             @Override
@@ -328,6 +330,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
             }
         });
+
+        currentUID = "";
 
         setupTileScanner();
         //setupBluetoothScanner();
@@ -460,21 +464,19 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         }
     }
 
-    private void scanKeg()
+    private void retrieveAlerts(String stationIDin)
     {
-        String kegUUID = "ERROR";
-        if(!kegIDEditText.getText().toString().matches(""))
+        if(!stationIDin.matches(""))
         {
-            kegUUID = kegIDEditText.getText().toString();
-
-            serverURL = serverIPAddress + "?request=storekeg" + "&id=" + itemID + "&kegid=" + kegUUID + "&lat=" + locationReceivedFromLocationUpdates.getLatitude() + "&lon=" + locationReceivedFromLocationUpdates.getLongitude();
+            serverURL = serverIPAddress + "?request=getalertsfor" + "&stationid=" + stationIDin;
             //lat and long are doubles, will cause issue? nope
-            Log.i("Network Update", "Attempting to start download from scanKeg. " + serverURL);
+            pingingServerFor_alertData = true;
+            Log.i("Network Update", "Attempting to start download from retrieveAlerts. " + serverURL);
             aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
         }
         else
         {
-            Log.e("kegScan Error", "invalid uuid entered.");
+            Log.e("Network Update", "Error in RetreiveAlters, invalid uuid entered");
         }
     }
 
@@ -581,7 +583,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             serverURL = serverIPAddress + "?request=getkegdata" + "&kegid=" + kegIDin;
             //lat and long are doubles, will cause issue? nope
             Log.i("Network Update", "Attempting to start download from retrieveKegData " + serverURL);
-            pingingServerFor_KegData = true;
+            pingingServerFor_alertData = true;
             aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
         }
         else
@@ -590,21 +592,40 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         }
     }
 
+    public void speakAlerts(ArrayList<String> inAlerts)
+    {
+        if(inAlerts.size() == 0)
+        {
+
+                toSpeech.speak("You have no new alerts.", TextToSpeech.QUEUE_FLUSH, null);
+        }
+        else
+        {
+            toSpeech.speak("You have new alerts.", TextToSpeech.QUEUE_FLUSH, null);
+            for (String aAlert:inAlerts)
+            {
+                toSpeech.speak(aAlert, TextToSpeech.QUEUE_ADD, null);
+            }
+        }
+        speakInstructions(currentUID);
+
+    }
+
     public void speakInstructions(String uidIn)
     {
         switch (uidIn)
         {
             case "0413b3caa74a81":
-                toSpeech.speak("Here are your instructions, Employee Number: " + uidIn.toString(), TextToSpeech.QUEUE_FLUSH, null);
+                toSpeech.speak("Here are your instructions, Employee Number: " + uidIn.toString(), TextToSpeech.QUEUE_ADD, null);
                 toSpeech.speak(" 1. Please replace the toilet paper.", TextToSpeech.QUEUE_ADD, null);
                 toSpeech.speak(" 2. Replace the soap.", TextToSpeech.QUEUE_ADD, null);
                 toSpeech.speak(" 3. Go to the pub, grab a pint,, and wait for this whooole thing to blow over.", TextToSpeech.QUEUE_ADD, null);
                 break;
             case "0433bf3aa94a81":
-                toSpeech.speak("Here are your instructions, Employee Number: " + uidIn.toString() + " , ", TextToSpeech.QUEUE_FLUSH, null);
+                toSpeech.speak("Here are your instructions, Employee Number: " + uidIn.toString() + " , ", TextToSpeech.QUEUE_ADD, null);
                 toSpeech.speak(" 1. Please ask your supervisor for instructions.", TextToSpeech.QUEUE_ADD, null);
                 break;
-            default: toSpeech.speak("Your ID, " + uidIn.toString() + ", is not on record,", TextToSpeech.QUEUE_FLUSH, null);
+            default: toSpeech.speak("Your ID, " + uidIn.toString() + ", is not on record,", TextToSpeech.QUEUE_ADD, null);
                 toSpeech.speak("  please report to your supervisor.", TextToSpeech.QUEUE_ADD, null);
                 break;
         }
@@ -741,9 +762,11 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                     public void run()
                     {
                         Log.i("TileScanner", "callback received: UID = " + outUID.toString());
-                        kegDataText.setText(outUID);
-                        //scanKeg(outUID.toString());
-                        speakInstructions(outUID.toString());
+                        alertDataText.setText(outUID);
+
+                        currentUID = outUID.toString();
+                        retrieveAlerts("Bathroom1");
+                        //TODO: fix this
                     }
                 });
             }
@@ -755,7 +778,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                     public void run()
                     {
                         Log.i("TileScanner", "UID found without a prior failure, assuming its a tag left on the scanner");
-                        kegDataText.setText("UID found without a prior failure, assuming its a tag left on the scanner");
+                        alertDataText.setText("UID found without a prior failure, assuming its a tag left on the scanner");
                     }
                 });
 
@@ -856,7 +879,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                         @Override
                         public void run()
                         {
-                            kegDataText.setText("No card detected");
+                            alertDataText.setText("No card detected");
                         }
                     });
                     //handler.sendEmptyMessage(4);
@@ -1304,796 +1327,6 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 //+++[/TileScanner Code]
 
 
-//++++++++++[Bluetooth BLE Code]
-    /*
-    private void setupBluetoothScanner()
-    {
-        scannerTimer = new Timer();
-
-        REQUEST_ENABLE_BT = 1;
-
-        btManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-
-        btAdapter = btManager.getAdapter();
-        if(btAdapter != null && !btAdapter.isEnabled())
-        {
-            Intent enableIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
-        }
-
-
-        storedScannerAddress = savedData.getString("ScannerMacAddress", "None");
-        Log.i("Pairing Update", "Retrieved from storage, scannerMacAddress of : " + storedScannerAddress);
-        if(btAdapter != null)
-        {
-            if(storedScannerAddress.matches("None"))
-            {
-                //btAdapter.startLeScan(leScanCallback);
-            }
-            else
-            {
-                btAdapter.getRemoteDevice(storedScannerAddress);
-            }
-        }
-
-        btLeGattCallback = new BluetoothReaderGattCallback();
-
-        btLeGattCallback.setOnConnectionStateChangeListener(new BluetoothReaderGattCallback.OnConnectionStateChangeListener()
-        {
-            @Override
-            public void onConnectionStateChange(final BluetoothGatt inGatt, final int state, final int newState)
-            {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run()
-                    {
-                        if (state != BluetoothGatt.GATT_SUCCESS)
-                        {
-                                    /*
-                                     * Show the message on fail to
-                                     * connect/disconnect.
-                                     /
-                            scannerConnectionState = BluetoothReader.STATE_DISCONNECTED;
-
-                            if (newState == BluetoothReader.STATE_CONNECTED) {
-                                Log.e("ScannerConnection", "Bt Reader Failled to connect");
-
-                            } else if (newState == BluetoothReader.STATE_DISCONNECTED) {
-                                Log.e("ScannerConnection", "Bt Reader Failed To Disconnect");
-                                mapText.setText("Connection Error \n Try waking your \n device up or \n try re-pairing it");
-
-                            }
-
-
-                            return;
-                        }
-
-                        scannerConnectionState = newState;
-                        Log.i("ScannerConnection", "Bt Reader ConnectedChanged to : " + scannerConnectionState);
-
-
-                        if (newState == BluetoothProfile.STATE_CONNECTED) {
-                                    /* Detect the connected reader. /
-                            if (scannerManager != null) {
-                                scannerManager.detectReader(inGatt, btLeGattCallback);
-                            }
-                        } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                            scannerReader = null;
-                                    /*
-                                     * Release resources occupied by Bluetooth
-                                     * GATT client.
-                                     /
-                            if (btGatt != null) {
-                                btGatt.close();
-                                btGatt = null;
-                            }
-                        }
-                    }
-                });
-            }
-        });
-
-        /* Initialize mBluetoothReaderManager. /
-        scannerManager = new BluetoothReaderManager();
-
-        /* Register BluetoothReaderManager's listeners /
-        scannerManager.setOnReaderDetectionListener(new BluetoothReaderManager.OnReaderDetectionListener() {
-
-                    @Override
-                    public void onReaderDetection(BluetoothReader reader) {
-
-
-                        if (reader instanceof Acr3901us1Reader) {
-                            /* The connected reader is ACR3901U-S1 reader. /
-                            Log.v("Reader Connection", "On Acr3901us1Reader Detected.");
-                        } else if (reader instanceof Acr1255uj1Reader) {
-                            /* The connected reader is ACR1255U-J1 reader. /
-                            Log.v("Reader Connection", "On Acr1255uj1Reader Detected.");
-                        } else {
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    Log.e("Reader Connection", "The device is not supported!");
-
-                                    /* Disconnect Bluetooth reader /
-                                    Log.e("Reader Coonection", "Disconnect reader!!!");
-                                    disconnectReader();
-                                    scannerConnectionState = BluetoothReader.STATE_DISCONNECTED;
-                                }
-                            });
-                            return;
-                        }
-
-                        scannerReader = reader;
-                        setListener(reader);
-                        activateReader(reader);
-                    }
-                });
-
-        /* Connect the reader. /
-        connectReader();
-    }
-    */
-
-    /*
-    private void setListener(BluetoothReader reader) {
-        /* Update status change listener /
-        if (scannerReader instanceof Acr3901us1Reader) {
-            ((Acr3901us1Reader) scannerReader)
-                    .setOnBatteryStatusChangeListener(new Acr3901us1Reader.OnBatteryStatusChangeListener() {
-
-                        @Override
-                        public void onBatteryStatusChange(
-                                BluetoothReader bluetoothReader,
-                                final int batteryStatus) {
-
-                            Log.i("Scanner Connection", "mBatteryStatusListener data: " + batteryStatus);
-
-                        }
-
-                    });
-        } else if (scannerReader instanceof Acr1255uj1Reader) {
-            ((Acr1255uj1Reader) scannerReader)
-                    .setOnBatteryLevelChangeListener(new Acr1255uj1Reader.OnBatteryLevelChangeListener() {
-
-                        @Override
-                        public void onBatteryLevelChange(
-                                BluetoothReader bluetoothReader,
-                                final int batteryLevel) {
-
-                            Log.i("Scanner Connection", "mBatteryLevelListener data: " + batteryLevel);
-
-                        }
-
-                    });
-        }
-
-        //THIS METHOD DOES NOT DETECT CHANGES TO BluetoothReader.CARD_STATUS_POWERED FOR SOME UNGODLY REASON
-        scannerReader.setOnCardStatusChangeListener(new BluetoothReader.OnCardStatusChangeListener() {
-
-
-                    @Override
-                    public void onCardStatusChange(
-                            BluetoothReader bluetoothReader, final int cardStatus) {
-
-                        Log.i("Scanner Connection", "Card Status changed to : " + cardStatus);
-
-                        if(cardStatus == BluetoothReader.CARD_STATUS_PRESENT)
-                        {
-                            Log.i("Scanner Connection", "about to transmit APDU : " + cardStatus);
-                            //try
-                            {
-                                scannerTimer.schedule(new TimerTask() {
-                                    @Override
-                                    public void run() {
-                                        transmitApdu();
-                                    }
-                                }, 100);
-
-                            }
-                            /*catch (InterruptedException e)
-                            {
-                                Log.e("Scanner Connection", "Delay for between card present and powered interupted, aborting transmit");
-                            }/
-                        }
-
-                    }
-
-                });
-
-        /* Wait for authentication completed. /
-        scannerReader.setOnAuthenticationCompleteListener(new BluetoothReader.OnAuthenticationCompleteListener() {
-
-                    @Override
-                    public void onAuthenticationComplete(BluetoothReader bluetoothReader, final int errorCode)
-                    {
-
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (errorCode == BluetoothReader.ERROR_SUCCESS) {
-                                    Log.i("Scanner Connection", "Succesess");
-                                    //mAuthentication.setEnabled(false);
-                                } else {
-
-                                    Log.i("Scanner Connection", "Fail");
-                                }
-                            }
-                        });
-                                if (errorCode == BluetoothReader.ERROR_SUCCESS)
-                                {
-                                    scannerIsAuthenticated = true;
-                                    Log.i("Scanner Connection", "Authentication Success! Starting Polling ");
-                                    startPolling();
-
-                                }
-                                else
-                                {
-                                    Log.i("Scanner Connection", "Authentication Failed!");
-                                }
-                    }
-
-                });
-
-
-        /* Wait for response APDU. /
-        Log.i("Scanner Connection", "Response Listener setting up");
-        scannerReader
-                .setOnResponseApduAvailableListener(new BluetoothReader.OnResponseApduAvailableListener() {
-
-                    @Override
-                    public void onResponseApduAvailable(
-                            BluetoothReader bluetoothReader, final byte[] apdu,
-                            final int errorCode) {
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                Log.i("LISTENER RESPONSE", "response apdu recieved");
-                                if(errorCode != BluetoothReader.ERROR_SUCCESS)
-                                {
-                                    Log.e("LISTENER RESPONSE", "response apdu error:" + errorCode);
-                                }
-                                else
-                                {
-                                    Log.i("LISTENER RESPONSE", "response apdu success with: " + apdu + "\n Translates to: " + toHexString(apdu));
-                                    scanKeg(toHexString(apdu));
-                                }
-                                //mTxtResponseApdu.setText(getResponseString(apdu, errorCode));
-                            }
-                        });
-                    }
-
-                });
-        Log.i("Scanner Connection", "Response Listener set up complete");
-
-
-
-
-        /* Handle on battery status available. /
-        if (scannerReader instanceof Acr3901us1Reader)
-        {
-            ((Acr3901us1Reader) scannerReader).setOnBatteryStatusAvailableListener(new Acr3901us1Reader.OnBatteryStatusAvailableListener()
-            {
-                        @Override
-                        public void onBatteryStatusAvailable(BluetoothReader bluetoothReader, final int batteryStatus, int status)
-                        {
-                            Log.i("Scanner Connection", "Battery Status String: " + batteryStatus);
-                        }
-            });
-        }
-
-        /* Handle on slot status available. /
-        scannerReader.setOnCardStatusAvailableListener(new BluetoothReader.OnCardStatusAvailableListener()
-        {
-             @Override
-             public void onCardStatusAvailable(BluetoothReader bluetoothReader, final int cardStatus, final int errorCode)
-             {
-                 if (errorCode != BluetoothReader.ERROR_SUCCESS)
-                 {
-                     Log.i("Scanner Connection", "CardStatusError : " + errorCode );
-                 }
-                 else
-                 {
-                     Log.i("Scanner Connection", "Card Status Avaiable: " + (cardStatus));
-
-                 }
-             }
-        });
-
-        scannerReader.setOnEnableNotificationCompleteListener(new BluetoothReader.OnEnableNotificationCompleteListener()
-        {
-
-                    @Override
-                    public void onEnableNotificationComplete(BluetoothReader bluetoothReader, final int result)
-                    {
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (result != BluetoothGatt.GATT_SUCCESS) {
-                                    /* Fail /
-                                    Log.i("Scanner Connection", "The device is unable to set notification!");
-                                }
-                                else
-                                {
-                                    Log.i("Scanner Connection", "The device is ready to use!");
-                                    //ScannerAuthLoop is recursive
-                                    scannerAuthLoop(500);
-                                }
-                            }
-                        });
-                    }
-        });
-
-
-    }
-
-    //This recursive method queues a new attempt to Authenticate the scanner every 500ms until the scanner is successfully authenicated.
-    //This method is nessary to circumvente the Authentication process sometimes failing, and the OnAuthenticationComplete listener failing to detect
-    // or respond to failures to authenticate most, but not all, of the time.
-    //TODO: Consider adding a hard limit of the amount of times this can run to the method.
-    private void scannerAuthLoop(final int delay)
-    {
-        scannerTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                if(!scannerIsAuthenticated)
-                {
-                    scannerAuthenticate();
-                    scannerAuthLoop(delay + 500);
-                }
-            }
-        }, delay);
-    }
-
-    private final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
-
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            BluetoothAdapter bluetoothAdapter = null;
-            BluetoothManager bluetoothManager = null;
-            final String action = intent.getAction();
-
-            if (!(scannerReader instanceof Acr3901us1Reader)) {
-                /* Only ACR3901U-S1 require bonding. /
-                return;
-            }
-
-            if (BluetoothDevice.ACTION_BOND_STATE_CHANGED.equals(action))
-            {
-                Log.i("Scanner Connection", "ACTION_BOND_STATE_CHANGED");
-
-                /* Get bond (pairing) state /
-                if (scannerManager == null) {
-                    Log.w("Scanner Connection", "Unable to initialize BluetoothReaderManager.");
-                    return;
-                }
-
-                bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-                if (bluetoothManager == null) {
-                    Log.w("Scanner Connection", "Unable to initialize BluetoothManager.");
-                    return;
-                }
-
-                bluetoothAdapter = bluetoothManager.getAdapter();
-                if (bluetoothAdapter == null) {
-                    Log.w("Scanner Connection", "Unable to initialize BluetoothAdapter.");
-                    return;
-                }
-
-                final BluetoothDevice device = bluetoothAdapter
-                        .getRemoteDevice(storedScannerAddress);
-
-                if (device == null) {
-                    mapText.setText("Device not found.\n Wake up the device or \nTry Pairing the device again.");
-                    Log.e("Scanner Connection", "Device not found, likely no address stored.");
-                    return;
-                }
-
-                final int bondState = device.getBondState();
-
-                // TODO: remove log message
-                Log.i("", "BroadcastReceiver - getBondState. state = "
-                        + bondState);
-
-                /* Enable notification /
-                if (bondState == BluetoothDevice.BOND_BONDED) {
-                    if (scannerReader != null) {
-                        Log.i("Scanner Connection", "Notifictions enabled");
-                        scannerReader.enableNotification(true);
-                    }
-                }
-
-
-            }
-        }
-
-    };*/
-
-    /*
-    private boolean connectReader() {
-        BluetoothManager bluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-        if (bluetoothManager == null) {
-            Log.w("Scanner Connection", "Unable to initialize BluetoothManager.");
-            scannerConnectionState = BluetoothReader.STATE_DISCONNECTED;
-            return false;
-        }
-
-        BluetoothAdapter bluetoothAdapter = bluetoothManager.getAdapter();
-        if (bluetoothAdapter == null) {
-            Log.w("Scanner Connection", "Unable to obtain a BluetoothAdapter.");
-            scannerConnectionState = BluetoothReader.STATE_DISCONNECTED;
-            return false;
-        }
-
-        /*
-         * Connect Device.
-         */
-        /* Clear old GATT connection. /
-        if (btGatt != null) {
-            Log.i("Scanner Connection", "Clear old GATT connection");
-            btGatt.disconnect();
-            btGatt.close();
-            btGatt = null;
-        }
-        else
-        {
-            Log.i("Scanner Connection", "old GATT connection already clear");
-        }
-
-        /* Create a new connection. /
-        BluetoothDevice device = null;
-
-        if(!storedScannerAddress.matches("None"))
-        {
-            device = bluetoothAdapter.getRemoteDevice(storedScannerAddress);
-        }
-
-        if (device == null) {
-            Log.e("Scanner Connection", "Device not found. Unable to connect.");
-            mapText.setText("Device not found.\n Wake up the \ndevice or \nTry Pairing the \ndevice again.");
-            return false;
-        }
-
-        /* Connect to GATT server. /
-        scannerConnectionState = BluetoothReader.STATE_CONNECTING;
-        btGatt = device.connectGatt(this, false, btLeGattCallback);
-        return true;
-    }
-
-    /* Disconnects an established connection. /
-    private void disconnectReader() {
-        if (btGatt == null) {
-            scannerConnectionState = BluetoothReader.STATE_DISCONNECTED;
-            return;
-        }
-        scannerConnectionState = BluetoothReader.STATE_DISCONNECTING;
-        stopPolling();
-        btGatt.disconnect();
-        Log.i("Scanner Connection", "Disconnected from scanner");
-    }
-
-    /* Start the process to enable the reader's notifications. /
-    private void activateReader(BluetoothReader reader) {
-        if (reader == null) {
-            return;
-        }
-
-        if (reader instanceof Acr3901us1Reader) {
-            /* Start pairing to the reader. /
-            ((Acr3901us1Reader) scannerReader).startBonding();
-        } else if (scannerReader instanceof Acr1255uj1Reader) {
-            /* Enable notification. /
-            scannerReader.enableNotification(true);
-            Log.i("Scanner Connection", "Notifications enabled");
-        }
-    }
-
-    private void scannerAuthenticate()
-    {
-        if (scannerReader == null) {
-            Log.e("Scanner Connection", "card_reader_not_ready");
-            return;
-        }
-
-                /* Retrieve master key from edit box. /
-        byte masterKey[] = null;
-
-        try
-        {
-            masterKey = getEditTextinHexBytes(toHexString(DEFAULT_1255_MASTER_KEY.getBytes("UTF-8")));
-        }
-        catch (Exception e)
-        {
-            Log.e("Scanner Connection", "UnsupportedEncodingException :" + e.toString());
-            return;
-        }
-                    /* Start authentication. /
-        Log.i("Scanner Connection", "Authenticating with key: " + masterKey);
-        if (!scannerReader.authenticate(masterKey))
-        {
-            Log.e("Scanner Connection", "Authenticate Error: card_reader_not_ready");
-        }
-        else
-        {
-
-            Log.i("Scanner Connection", "Authenticating...");
-        }
-
-    }
-
-    /* Start polling card. /
-    private void startPolling()
-    {
-        if (scannerReader == null)
-        {
-
-            Log.e("Scanner Connection", "Polling Error, unable to start polling, reader not found");
-            return;
-        }
-        if (!scannerReader.transmitEscapeCommand(AUTO_POLLING_START))
-        {
-            Log.e("Scanner Connection", "Polling Error, unable to start polling");
-        }
-    }
-
-    /* Stop polling card. /
-    private void stopPolling()
-        {
-        if (scannerReader == null) {
-            Log.e("Scanner Connection", "Polling Stop Error, unable to stop polling, reader not found");;
-            return;
-        }
-        if (!scannerReader.transmitEscapeCommand(AUTO_POLLING_STOP)) {
-            Log.e("Scanner Connection", "Polling Stop Error, unable to stop polling");
-        }
-    }
-
-    private void transmitApdu()
-    {
-        Log.i("Scanner Connection", "APDU Transmiting started.");
-        /* Check for detected reader. /
-        if (scannerReader == null)
-        {
-            Log.e("Scanner Connection", "APDU Transmit Error, scanner not found");
-            return;
-        }
-
-                /* Retrieve APDU command from edit box. /
-        byte apduCommand[] = GET_UID_APDU_COMMAND;
-
-        if (apduCommand != null && apduCommand.length > 0)
-        {
-
-                    /* Transmit APDU command. /
-            if (!scannerReader.transmitApdu(apduCommand))
-            {
-                Log.e("Scanner Connection", "APDU Transmit Error, Card not ready");
-            }
-            else
-            {
-                Log.i("Scanner Connection", "APDU Transmit Successful with command : " + apduCommand + "\nTranslation : " + toHexString(apduCommand));
-            }
-        }
-        else
-        {
-            Log.e("Scanner Connection", "APDU Transmit Error, Character Format Error");
-        }
-    }
-
-    private String toHexString(byte[] array)
-    {
-
-        String bufferString = "";
-
-        if (array != null) {
-            for (int i = 0; i < array.length; i++) {
-                String hexChar = Integer.toHexString(array[i] & 0xFF);
-                if (hexChar.length() == 1) {
-                    hexChar = "0" + hexChar;
-                }
-                bufferString += hexChar.toUpperCase(Locale.US) + " ";
-            }
-        }
-        return bufferString;
-    }
-
-    private byte[] getEditTextinHexBytes(String key)
-    {
-        String rawdata = key;
-
-
-        Log.i("Scanner Connection", "gettingHexBytes with rawData: " + rawdata);
-
-        if (rawdata == null || rawdata.isEmpty()) {
-
-            return null;
-        }
-
-        String command = rawdata.replace(" ", "").replace("\n", "");
-
-        Log.i("Scanner Connection", "gettingHexBytes with command: " + command);
-
-        if (command.isEmpty() || command.length() % 2 != 0 || isHexNumber(command) == false)
-        {
-            return null;
-        }
-
-        return hexString2Bytes(command);
-    }
-
-    private byte[] hexString2Bytes(String string) {
-        Log.i("Converting Key", "hexString in :" + string);
-        if (string == null)
-            throw new NullPointerException("string was null");
-
-        int len = string.length();
-
-        if (len == 0)
-            return new byte[0];
-        if (len % 2 == 1)
-            throw new IllegalArgumentException(
-                    "string length should be an even number");
-
-        byte[] ret = new byte[len / 2];
-        byte[] tmp = string.getBytes();
-
-        for (int i = 0; i < len; i += 2) {
-            if (!isHexNumber(tmp[i]) || !isHexNumber(tmp[i + 1])) {
-                throw new NumberFormatException(
-                        "string contained invalid value");
-            }
-            ret[i / 2] = uniteBytes(tmp[i], tmp[i + 1]);
-        }
-        return ret;
-    }
-
-    private static byte uniteBytes(byte src0, byte src1) {
-        byte _b0 = Byte.decode("0x" + new String(new byte[] { src0 }))
-                .byteValue();
-        _b0 = (byte) (_b0 << 4);
-        byte _b1 = Byte.decode("0x" + new String(new byte[] { src1 }))
-                .byteValue();
-        byte ret = (byte) (_b0 ^ _b1);
-        return ret;
-    }
-
-    private boolean isHexNumber(String string) {
-        if (string == null)
-            throw new NullPointerException("string was null");
-
-        boolean flag = true;
-
-        for (int i = 0; i < string.length(); i++) {
-            char cc = string.charAt(i);
-            if (!isHexNumber((byte) cc)) {
-                flag = false;
-                break;
-            }
-        }
-        return flag;
-    }
-
-    private boolean isHexNumber(byte value) {
-        if (!(value >= '0' && value <= '9') && !(value >= 'A' && value <= 'F')
-                && !(value >= 'a' && value <= 'f')) {
-            return false;
-        }
-        return true;
-    }
-
-    /* Get the Error string. /
-    private String getErrorString(int errorCode) {
-        if (errorCode == BluetoothReader.ERROR_SUCCESS) {
-            return "";
-        } else if (errorCode == BluetoothReader.ERROR_INVALID_CHECKSUM) {
-            return "The checksum is invalid.";
-        } else if (errorCode == BluetoothReader.ERROR_INVALID_DATA_LENGTH) {
-            return "The data length is invalid.";
-        } else if (errorCode == BluetoothReader.ERROR_INVALID_COMMAND) {
-            return "The command is invalid.";
-        } else if (errorCode == BluetoothReader.ERROR_UNKNOWN_COMMAND_ID) {
-            return "The command ID is unknown.";
-        } else if (errorCode == BluetoothReader.ERROR_CARD_OPERATION) {
-            return "The card operation failed.";
-        } else if (errorCode == BluetoothReader.ERROR_AUTHENTICATION_REQUIRED) {
-            return "Authentication is required.";
-        } else if (errorCode == BluetoothReader.ERROR_LOW_BATTERY) {
-            return "The battery is low.";
-        } else if (errorCode == BluetoothReader.ERROR_CHARACTERISTIC_NOT_FOUND) {
-            return "Error characteristic is not found.";
-        } else if (errorCode == BluetoothReader.ERROR_WRITE_DATA) {
-            return "Write command to reader is failed.";
-        } else if (errorCode == BluetoothReader.ERROR_TIMEOUT) {
-            return "Timeout.";
-        } else if (errorCode == BluetoothReader.ERROR_AUTHENTICATION_FAILED) {
-            return "Authentication is failed.";
-        } else if (errorCode == BluetoothReader.ERROR_UNDEFINED) {
-            return "Undefined error.";
-        } else if (errorCode == BluetoothReader.ERROR_INVALID_DATA) {
-            return "Received data error.";
-        } else if (errorCode == BluetoothReader.ERROR_COMMAND_FAILED) {
-            return "The command failed.";
-        }
-        return "Unknown error.";
-    }
-
-    /*private class scannerGattCallBack extends BluetoothGattCallback
-    {
-
-        @Override
-        public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState)
-        {
-            super.onConnectionStateChange(gatt, status, newState);
-
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run()
-                {
-                    if (state != BluetoothGatt.GATT_SUCCESS)
-                    {
-                                     *
-                                     * Show the message on fail to
-                                     * connect/disconnect.
-                                     *
-                        mConnectState = BluetoothReader.STATE_DISCONNECTED;
-
-                        if (newState == BluetoothReader.STATE_CONNECTED) {
-                            Log.e("ScannerConnection", "Bt Reader Failled to connect");
-                        } else if (newState == BluetoothReader.STATE_DISCONNECTED) {
-                            Log.e("ScannerConnection", "Bt Reader Failed To Disconnect");
-
-                        }
-
-
-                        return;
-                    }
-
-                    updateConnectionState(newState);
-
-                    scannerSetup();
-                }
-            });
-
-        }
-
-        @Override
-        public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic)
-        {
-            super.onCharacteristicChanged(gatt, characteristic);
-
-            //Insert get characteristic logic to retrieve the uuid scanned here.
-        }
-
-        @Override
-        public void onServicesDiscovered(BluetoothGatt gatt, int status)
-        {
-            super.onServicesDiscovered(gatt, status);
-            List<BluetoothGattService> services = btGatt.getServices();
-            for (BluetoothGattService service: services)
-            {
-                List<BluetoothGattCharacteristic> characteristics = service.getCharacteristics();
-                for (BluetoothGattCharacteristic aCharacteristic: characteristics)
-                {
-                    //if(aCharacteristic == TheCharacteristicWeWant)
-                    {
-                        for (BluetoothGattDescriptor descriptor : aCharacteristic.getDescriptors())
-                        {
-                            if(descriptor.getUuid() == UUID.fromString(CLIENT_CHARACTERISTIC_CONFIG))
-                            {
-                                descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
-                                btGatt.writeDescriptor(descriptor);
-                                break;
-                            }
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-    }*/
-
-//++++++++++[/Bluetooth BLE CODE]
-
 
 //**********[Location Update and server pinging Code]
     @Override
@@ -2146,35 +1379,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     @Override
     public void onLocationChanged(Location location)
     {
-        locationReceivedFromLocationUpdates = location;
-        userLocation = locationReceivedFromLocationUpdates;
-        //locationReceivedFromLocationUpdates = fakeUserLocation;
 
-
-        if(locationReceivedFromLocationUpdates != null)
-        {
-            String userName = "A Truck";
-            if(!nameEditText.getText().toString().matches(""))
-            {
-                userName = nameEditText.getText().toString();
-            }
-            serverURL = serverIPAddress + "?request=storelocation" + "&id=" + itemID + "&name=" + itemName.replace(' ', '_') + "&lat=" + locationReceivedFromLocationUpdates.getLatitude() + "&lon=" + locationReceivedFromLocationUpdates.getLongitude();
-            //lat and long are doubles, will cause issue? nope
-            Log.i("Network Update", "Attempting to start download from onLocationChanged. " + serverURL);
-
-            if(hasState)//if the activity is currently not paused/stopped
-            {
-                aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
-            }
-
-
-            //startDownload();
-        }
-        else
-        {
-
-            Log.e("ERROR", "Unable to send location to sevrver, current location = null");
-        }
 
     }
 
@@ -2217,37 +1422,45 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
         if(result != null)
         {
-            Log.i("Network UPDATE", "Non null result received." );
-            //mapText.setText("We're good");
-            if(pingingServerFor_KegData)
+            try
             {
-                pingingServerFor_KegData = false;
-                result = result.replace("was Picked up at:", "\nwas picked up at:");
-                result = result.replace(") at ", ") \nat ");
-                result = result.replace("then Dropped at:", "\nthen dropped at:");
-                result = result.replace("by Driver:", "\nby driver:");
+                JSONArray jsonResultFromServer = new JSONArray(result);
 
-                result = result.replace("is being transported by truck", "\nis being transported by driver: ");
-                result = result.replace("currently at ", "\ncurrently at: ");
-                kegDataText.setText(result);
-
-            }
-            else
-            {
-                if (itemID == 0 && !result.matches(""))//if app has no assigned id, receive id from servlet.
+                Log.i("Network UPDATE", "Non null result received." );
+                //mapText.setText("We're good");
+                if(pingingServerFor_alertData)
                 {
-                    try
+                    pingingServerFor_alertData = false;
+                    alertDataText.setText(result);
+                    ArrayList<String> results = new ArrayList<String>();
+                    for(int i = 0; i < jsonResultFromServer.length(); i++)
                     {
-                        JSONArray jin = new JSONArray(result);
-                        JSONObject obj = jin.getJSONObject(0);
-                        itemID = obj.getInt("id");
-                    } catch (JSONException e)
+                        results.add(jsonResultFromServer.getJSONObject(i).getString("alert"));
+                    }
+
+                    //mapText.setText(result);
+                    speakAlerts(results);
+                }
+                else
+                {
+                    if (itemID == 0 && !result.matches(""))//if app has no assigned id, receive id from servlet.
                     {
-                        Log.e("JSON ERROR", "Error retrieving id from servlet with exception: " + e.toString());
+                        try
+                        {
+                            JSONArray jin = new JSONArray(result);
+                            JSONObject obj = jin.getJSONObject(0);
+                            itemID = obj.getInt("id");
+                        } catch (JSONException e)
+                        {
+                            Log.e("JSON ERROR", "Error retrieving id from servlet with exception: " + e.toString());
+                        }
                     }
                 }
             }
-
+            catch (JSONException e)
+            {
+                Log.e("Network Update", "ERROR in Json: " + e.toString());
+            }
 
         }
         else
