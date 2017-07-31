@@ -21,12 +21,14 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.os.ResultReceiver;
 import android.provider.Settings;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
+import android.speech.tts.Voice;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentActivity;
@@ -140,13 +142,13 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     //[/Tile Reader Variables]
 
     //[Headset Variables]
-    private ArrayList<String> allHeadsetMacAddresses;
+    /*private ArrayList<String> allHeadsetMacAddresses;
     private BluetoothDevice currentHeadsetDevice;
 
     private Timer headsetTimer;
 
     private BluetoothA2dp currentHeadsetProfile;
-    private Method connectMethod;
+    private Method connectMethod;*/
     //[/Headset Variables]
 
     /*[Bar Reader Variables]
@@ -314,7 +316,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             }
         });
 
-        geoCoderServiceResultReciever = new DriverActivity.AddressResultReceiver(new Handler());
+        geoCoderServiceResultReciever = new AddressResultReceiver(new Handler());
 
 
         pingingServerFor_alertData = false;
@@ -328,6 +330,13 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             }
         });
         toSpeech.setLanguage(Locale.ENGLISH);
+        /*toSpeech.setSpeechRate(0.75f);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+        {
+            toSpeech.setVoice(toSpeech.getVoices().iterator().next());
+        }*/
+
         toSpeech.setOnUtteranceProgressListener(new UtteranceProgressListener()
         {
             @Override
@@ -358,7 +367,9 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         barReaderInput = "";
         barReaderInputInProgress = false;
         kegIDEditText.requestFocus();*/
-        setupHeadset();
+
+
+        //setupHeadset();
 
         restoreSavedValues(savedInstanceState);
 
@@ -377,7 +388,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         tileReaderTimer = new Timer();
         connectToTileScanner();
 
-        setupHeadset();
+        //setupHeadset();
+
         //barReaderTimer = new Timer();
 
 
@@ -416,8 +428,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         }
 
 
-        headsetTimer.cancel();
-        headsetTimer.purge();
+        //headsetTimer.cancel();
+        //headsetTimer.purge();
 
         /*
         barReaderTimer.cancel();
@@ -658,7 +670,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     }
 
 //---[Headset Code]
-
+/*
     private void setupHeadset()
     {
         allHeadsetMacAddresses = new ArrayList<String>();
@@ -727,7 +739,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         }, 5000, 5000);
 
     }
-
+*/
 //---[/Headset Code]
 
 
