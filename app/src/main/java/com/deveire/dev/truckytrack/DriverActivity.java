@@ -1,10 +1,15 @@
 package com.deveire.dev.truckytrack;
 
 import android.app.ProgressDialog;
+import android.bluetooth.BluetoothA2dp;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
+import android.bluetooth.BluetoothHeadset;
 import android.bluetooth.BluetoothManager;
+import android.bluetooth.BluetoothProfile;
+import android.bluetooth.BluetoothSocket;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -58,12 +63,15 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.UUID;
 
 public class DriverActivity extends FragmentActivity implements GoogleApiClient.OnConnectionFailedListener, GoogleApiClient.ConnectionCallbacks, LocationListener, DownloadCallback<String>
 {
@@ -130,6 +138,16 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private boolean stopAllScans;
 
     //[/Tile Reader Variables]
+
+    //[Headset Variables]
+    private ArrayList<String> allHeadsetMacAddresses;
+    private BluetoothDevice currentHeadsetDevice;
+
+    private Timer headsetTimer;
+
+    private BluetoothA2dp currentHeadsetProfile;
+    private Method connectMethod;
+    //[/Headset Variables]
 
     /*[Bar Reader Variables]
     private String barReaderInput;
@@ -340,6 +358,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         barReaderInput = "";
         barReaderInputInProgress = false;
         kegIDEditText.requestFocus();*/
+        setupHeadset();
 
         restoreSavedValues(savedInstanceState);
 
@@ -358,6 +377,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         tileReaderTimer = new Timer();
         connectToTileScanner();
 
+        setupHeadset();
         //barReaderTimer = new Timer();
 
 
@@ -394,6 +414,10 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         {
             mScanner.stopScan();
         }
+
+
+        headsetTimer.cancel();
+        headsetTimer.purge();
 
         /*
         barReaderTimer.cancel();
@@ -432,6 +456,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
 
         edit.commit();
+
+
 
         /*
         if(btGatt != null)
@@ -630,6 +656,79 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                 break;
         }
     }
+
+//---[Headset Code]
+
+    private void setupHeadset()
+    {
+        allHeadsetMacAddresses = new ArrayList<String>();
+        allHeadsetMacAddresses.add("E9:08:EF:C4:1A:65");
+
+        btAdapter = BluetoothAdapter.getDefaultAdapter();
+        btAdapter.getProfileProxy(this, new BluetoothProfile.ServiceListener()
+        {
+            @Override
+            public void onServiceConnected(int profile, BluetoothProfile proxy)
+            {
+                currentHeadsetProfile = (BluetoothA2dp) proxy;
+                Log.i("Headset Update", "Storing Proxy Profile: " + proxy.toString());
+                try
+                {
+                    connectMethod = BluetoothA2dp.class.getDeclaredMethod("connect", BluetoothDevice.class);
+                    Log.i("Headset Update", "Storing Method connect: " + connectMethod.toString());
+                }
+                catch (NoSuchMethodException e)
+                {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onServiceDisconnected(int profile)
+            {
+                Log.i("Headset Update", "a service has disconnected: " + profile);
+            }
+        },   BluetoothProfile.A2DP);
+
+
+        headsetTimer = new Timer();
+
+        headsetTimer.schedule(new TimerTask()
+        {
+            @Override
+            public void run()
+            {
+                Log.i("Headset Update", "Device is badger:" + currentHeadsetProfile.getConnectionState(currentHeadsetDevice));
+                if(currentHeadsetProfile.getConnectionState(currentHeadsetDevice) != BluetoothProfile.STATE_CONNECTED)
+                {
+                    for (String aHeadsetAddress: allHeadsetMacAddresses)
+                    {
+                        Log.i("Headset Update", "Attempting to link to headset at address: " + aHeadsetAddress);
+                        currentHeadsetDevice = btAdapter.getRemoteDevice(aHeadsetAddress);
+                        Log.i("Headset Update", "Connected Devices: " + btAdapter.getBondedDevices().toString());
+                        try
+                        {
+                            Log.i("Headset Update", "Attempting to connect to device, with device: " + currentHeadsetDevice + ". and profile: " + currentHeadsetProfile);
+                            connectMethod.invoke(currentHeadsetProfile, currentHeadsetDevice);
+                        }
+                        catch (IllegalAccessException e)
+                        {
+                            Log.e("Headset Update", "Error Illegal Access exception");
+                            e.printStackTrace();
+                        }
+                        catch (InvocationTargetException e)
+                        {
+                            Log.i("Headset Update", "Error Invocation Target exception");
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+        }, 5000, 5000);
+
+    }
+
+//---[/Headset Code]
 
 
 //+++[TileScanner Code]
@@ -1543,5 +1642,6 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
 
 /*
+
 
  */
