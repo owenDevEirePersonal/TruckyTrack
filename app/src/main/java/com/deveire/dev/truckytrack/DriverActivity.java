@@ -17,6 +17,7 @@ import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.BitmapFactory;
 import android.location.Geocoder;
 import android.location.Location;
 import android.net.ConnectivityManager;
@@ -38,6 +39,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 
@@ -70,6 +72,7 @@ import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -85,6 +88,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private EditText kegIDEditText;
     private Button scanKegButton;
     private Button pairReaderButton;
+    private ImageView adImageView;
 
     final static int PAIR_READER_REQUESTCODE = 9;
 
@@ -95,6 +99,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private boolean hasState;
 
     private TextToSpeech toSpeech;
+    private String speechInText;
+    private HashMap<String, String> endOfSpeakIndentifier;
 
     //[BLE Variables]
     private String storedScannerAddress;
@@ -114,6 +120,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private Boolean pingingServerFor_alertData;
     private TextView alertDataText;
     private String currentUID;
+    private String currentStationID;
     //[/Retreive Alert Data Variables]
 
 
@@ -210,11 +217,15 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
         mapText = (TextView) findViewById(R.id.mapText);
         nameEditText = (EditText) findViewById(R.id.nameEditText);
-        kegIDEditText = (EditText) findViewById(R.id.kegIDEditText);
-        scanKegButton = (Button) findViewById(R.id.scanKegButton);
+        //kegIDEditText = (EditText) findViewById(R.id.kegIDEditText);
+        //scanKegButton = (Button) findViewById(R.id.scanKegButton);
+
+        adImageView = (ImageView) findViewById(R.id.addImageView);
+        adImageView.setImageResource(R.drawable.rabbit_ad);
+        adImageView.setVisibility(View.VISIBLE);
 
 
-        scanKegButton.setOnClickListener(new View.OnClickListener()
+        /*scanKegButton.setOnClickListener(new View.OnClickListener()
         {
             @Override
             public void onClick(View v)
@@ -223,9 +234,9 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                 //Log.i("Scanner Connection", "current card status = " + currentCardStatus);
                 //transmitApdu();
             }
-        });
+        });*/
 
-        pairReaderButton = (Button) findViewById(R.id.pairReaderButton);
+        /*pairReaderButton = (Button) findViewById(R.id.pairReaderButton);
         pairReaderButton.setOnClickListener(new View.OnClickListener()
         {
             @Override
@@ -237,9 +248,9 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                 /*if(btAdapter != null)
                 {
                     btAdapter.startLeScan(leScanCallback);
-                }*/
+                }*
             }
-        });
+        });*/
 
         hasState = true;
 
@@ -326,39 +337,56 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             @Override
             public void onInit(int status)
             {
+                Log.i("Text To Speech Update", "onInit Complete");
+                toSpeech.setLanguage(Locale.ENGLISH);
+                endOfSpeakIndentifier = new HashMap();
+                endOfSpeakIndentifier.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "endOfSpeech");
+                toSpeech.setOnUtteranceProgressListener(new UtteranceProgressListener()
+                {
+                    @Override
+                    public void onStart(String utteranceId)
+                    {
+                        Log.i("Text To Speech Update", "onStart called");
+                    }
 
+                    @Override
+                    public void onDone(String utteranceId)
+                    {
+                        Log.i("Speech", utteranceId + " DONE!");
+                        if(utteranceId.matches("End"))
+                        {
+                            try
+                            {
+                                Thread.sleep(10000);
+                            } catch (InterruptedException e)
+                            {
+                                e.printStackTrace();
+                            }
+                            runOnUiThread(new Runnable()
+                            {
+                                @Override
+                                public void run()
+                                {
+                                    adImageView.setVisibility(View.VISIBLE);
+                                }
+                            });
+                        }
+                        //toSpeech.shutdown();
+                    }
+
+                    @Override
+                    public void onError(String utteranceId)
+                    {
+                        Log.i("Text To Speech Update", "ERROR DETECTED");
+                    }
+                });
             }
         });
-        toSpeech.setLanguage(Locale.ENGLISH);
-        /*toSpeech.setSpeechRate(0.75f);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-        {
-            toSpeech.setVoice(toSpeech.getVoices().iterator().next());
-        }*/
-
-        toSpeech.setOnUtteranceProgressListener(new UtteranceProgressListener()
-        {
-            @Override
-            public void onStart(String utteranceId)
-            {
-
-            }
-
-            @Override
-            public void onDone(String utteranceId)
-            {
-                toSpeech.shutdown();
-            }
-
-            @Override
-            public void onError(String utteranceId)
-            {
-
-            }
-        });
 
         currentUID = "";
+        currentStationID = "bathroom1";
+        nameEditText.setText(currentStationID);
 
         setupTileScanner();
         //setupBluetoothScanner();
@@ -632,40 +660,61 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
     public void speakAlerts(ArrayList<String> inAlerts)
     {
-        if(inAlerts.size() == 0)
+        speechInText = "";
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
         {
-
-                toSpeech.speak("You have no new alerts.", TextToSpeech.QUEUE_FLUSH, null);
-        }
-        else
-        {
-            toSpeech.speak("You have new alerts.", TextToSpeech.QUEUE_FLUSH, null);
-            for (String aAlert:inAlerts)
+            adImageView.setVisibility(View.INVISIBLE);
+            if (inAlerts.size() == 0)
             {
-                toSpeech.speak(aAlert, TextToSpeech.QUEUE_ADD, null);
+                toSpeech.speak("You have no new alerts.", TextToSpeech.QUEUE_FLUSH, null, "newAlerts");
+                speechInText = "You have no new alerts:\n";
             }
+            else
+            {
+                toSpeech.speak("You have new alerts.", TextToSpeech.QUEUE_FLUSH, null, "newAlerts");
+                speechInText = "You have new alerts:\n";
+                for (String aAlert : inAlerts)
+                {
+                    toSpeech.speak(aAlert, TextToSpeech.QUEUE_ADD, null, null);
+                    speechInText += "\n" + aAlert + "\n";
+                }
+            }
+            speechInText += "--------------------------------------------------------\n";
+            speakInstructions(currentUID);
         }
-        speakInstructions(currentUID);
-
     }
 
     public void speakInstructions(String uidIn)
     {
-        switch (uidIn)
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
         {
-            case "0413b3caa74a81":
-                toSpeech.speak("Here are your instructions, Employee Number: " + uidIn.toString(), TextToSpeech.QUEUE_ADD, null);
-                toSpeech.speak(" 1. Please replace the toilet paper.", TextToSpeech.QUEUE_ADD, null);
-                toSpeech.speak(" 2. Replace the soap.", TextToSpeech.QUEUE_ADD, null);
-                toSpeech.speak(" 3. Go to the pub, grab a pint,, and wait for this whooole thing to blow over.", TextToSpeech.QUEUE_ADD, null);
-                break;
-            case "0433bf3aa94a81":
-                toSpeech.speak("Here are your instructions, Employee Number: " + uidIn.toString() + " , ", TextToSpeech.QUEUE_ADD, null);
-                toSpeech.speak(" 1. Please ask your supervisor for instructions.", TextToSpeech.QUEUE_ADD, null);
-                break;
-            default: toSpeech.speak("Your ID, " + uidIn.toString() + ", is not on record,", TextToSpeech.QUEUE_ADD, null);
-                toSpeech.speak("  please report to your supervisor.", TextToSpeech.QUEUE_ADD, null);
-                break;
+            switch (uidIn)
+            {
+                case "0413b3caa74a81":
+                    toSpeech.speak("Here are your instructions, Employee Number: " + uidIn.toString(), TextToSpeech.QUEUE_ADD, null, "instruct1");
+                    speechInText += "Here are your instructions, Employee Number " + uidIn.toString() + ":\n";
+                    toSpeech.speak(" 1. Please replace the toilet paper.", TextToSpeech.QUEUE_ADD, null, "instruct2");
+                    speechInText += "\n1. Please replace the toilet paper.\n";
+                    toSpeech.speak(" 2. Replace the soap.", TextToSpeech.QUEUE_ADD, null, "instruct3");
+                    speechInText += "\n2. Replace the soap.\n";
+                    toSpeech.speak(" 3. Go to the pub, grab a pint,, and wait for this whooole thing to blow over.", TextToSpeech.QUEUE_ADD, null, "instruct4");
+                    speechInText += "\n3. Go to the pub, grab a pint, and wait for this whole thing to blow over.\n";
+                    break;
+                case "0433bf3aa94a81":
+                    toSpeech.speak("Here are your instructions, Employee Number: " + uidIn.toString() + " , ", TextToSpeech.QUEUE_ADD, null, "instruct1");
+                    speechInText += "Here are your instructions, Employee Number " + uidIn.toString() + ":\n";
+                    toSpeech.speak(" 1. Please ask your supervisor for instructions.", TextToSpeech.QUEUE_ADD, null, "instruct2");
+                    speechInText += "\n1. Please ask your supervisor for instructions.\n";
+                    break;
+                default:
+                    toSpeech.speak("Your ID, " + uidIn.toString() + ", is not on record,", TextToSpeech.QUEUE_ADD, null, "instruct1");
+                    toSpeech.speak("  please report to your supervisor.", TextToSpeech.QUEUE_ADD, null, "instruct2");
+                    speechInText += "\nYour id, " + uidIn.toString() + ", is not on record, please report to your supervisor.\n";
+                    break;
+            }
+            toSpeech.speak("End of Instructions", TextToSpeech.QUEUE_ADD, null, "End");
+            alertDataText.setText(speechInText);
+
         }
     }
 
@@ -876,7 +925,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                         alertDataText.setText(outUID);
 
                         currentUID = outUID.toString();
-                        retrieveAlerts("Bathroom1");
+                        currentStationID = nameEditText.getText().toString();
+                        retrieveAlerts(currentStationID);
                         //TODO: fix this
                     }
                 });
@@ -990,7 +1040,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                         @Override
                         public void run()
                         {
-                            alertDataText.setText("No card detected");
+                            //alertDataText.setText("No card detected");
                         }
                     });
                     //handler.sendEmptyMessage(4);
