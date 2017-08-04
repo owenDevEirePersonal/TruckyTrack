@@ -10,6 +10,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.RadioButton;
 import android.widget.TableLayout;
 import android.widget.TableRow;
@@ -41,6 +42,7 @@ public class QuestionaireActivity extends AppCompatActivity
     private RadioButton row2No;
     private RadioButton row2Yes;
 
+    private ImageView adImage;
 
 
     //[Tile Reader Variables]
@@ -78,6 +80,9 @@ public class QuestionaireActivity extends AppCompatActivity
 
         debugText = (TextView) findViewById(R.id.debugText);
 
+        adImage = (ImageView) findViewById(R.id.adImage);
+        adImage.setVisibility(View.VISIBLE);
+
         setupTileScanner();
 
         table = (TableLayout) findViewById(R.id.table);
@@ -96,6 +101,7 @@ public class QuestionaireActivity extends AppCompatActivity
         tileReaderTimer = new Timer();
         connectToTileScanner();
 
+        adImage.setVisibility(View.VISIBLE);
         //barReaderTimer = new Timer();
 
 
@@ -195,6 +201,7 @@ public class QuestionaireActivity extends AppCompatActivity
 
     private void setupQuestionaire(String inUID)
     {
+        adImage.setVisibility(View.INVISIBLE);
         Log.i("Questionaire", "Setting up questionaire UID = " + inUID);
         table.removeAllViews();
 

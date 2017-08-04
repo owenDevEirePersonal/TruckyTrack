@@ -19,5 +19,21 @@
         map:layout_constraintLeft_toLeftOf="parent"
         map:layout_constraintRight_toRightOf="parent"
         />
+
+    <ImageView
+        android:id="@+id/imageView"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        map:srcCompat="@drawable/rabbit_ad"
+        android:layout_marginBottom="8dp"
+        map:layout_constraintBottom_toTopOf="@+id/kegDataText"
+        android:layout_marginLeft="8dp"
+        map:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginRight="8dp"
+        map:layout_constraintRight_toRightOf="parent"
+        map:layout_constraintTop_toTopOf="parent"
+        android:layout_marginTop="8dp"
+        map:layout_constraintHorizontal_bias="0.666"
+        map:layout_constraintVertical_bias="0.507"/>
 </android.support.constraint.ConstraintLayout>
 
