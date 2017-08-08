@@ -22,6 +22,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -50,8 +51,8 @@ import org.json.JSONObject;
 public class MainActivity extends Activity
 {
 
-    private Button driverButton;
-    private Button managerButton;
+    private ImageButton driverButton;
+    private ImageButton managerButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -60,8 +61,8 @@ public class MainActivity extends Activity
         setContentView(R.layout.activity_main);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
 
-        driverButton = (Button) findViewById(R.id.driverButton);
-        managerButton = (Button) findViewById(R.id.managerButton);
+        driverButton = (ImageButton) findViewById(R.id.driverButton);
+        managerButton = (ImageButton) findViewById(R.id.managerButton);
 
         driverButton.setOnClickListener(new View.OnClickListener()
         {
