@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">TruckyTrack</string>
+    <string name="app_name">KegBots 360</string>
     <string name="title_activity_main">Main Activity</string>
     <string name="title_activity_manager">Manager Mode</string>
     <string name="title_activity_driver">Driver Mode</string>

@@ -5,25 +5,25 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/homescreenbackground">
+    android:background="@drawable/homescreenbackground3">
 
 
     <ImageButton
         android:id="@+id/driverButton"
         android:layout_width="0dp"
         android:layout_height="150dp"
+        android:layout_marginBottom="0dp"
         android:layout_marginLeft="0dp"
         android:layout_marginRight="0dp"
         android:layout_marginTop="0dp"
         android:src="@drawable/driverbutton"
+        map:layout_constraintBottom_toTopOf="@+id/managerButton"
         map:layout_constraintHorizontal_bias="0.0"
         map:layout_constraintLeft_toLeftOf="parent"
         map:layout_constraintRight_toRightOf="parent"
         map:layout_constraintTop_toTopOf="parent"
-        map:srcCompat="@drawable/driverbutton"
-        android:layout_marginBottom="0dp"
-        map:layout_constraintBottom_toTopOf="@+id/managerButton"
-        map:layout_constraintVertical_bias="1.0"/>
+        map:layout_constraintVertical_bias="1.0"
+        map:srcCompat="@drawable/driverbutton"/>
 
     <ImageButton
         android:id="@+id/managerButton"
