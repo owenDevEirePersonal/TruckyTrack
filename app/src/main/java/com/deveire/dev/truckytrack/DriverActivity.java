@@ -68,9 +68,6 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
     private TextView mapText;
     private EditText nameEditText;
-    private EditText kegIDEditText;
-    private Button scanKegButton;
-    private Button pairReaderButton;
 
     final static int PAIR_READER_REQUESTCODE = 9;
 
@@ -183,36 +180,9 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
         mapText = (TextView) findViewById(R.id.mapText);
         nameEditText = (EditText) findViewById(R.id.nameEditText);
-        kegIDEditText = (EditText) findViewById(R.id.kegIDEditText);
-        scanKegButton = (Button) findViewById(R.id.scanKegButton);
 
 
-        scanKegButton.setOnClickListener(new View.OnClickListener()
-        {
-            @Override
-            public void onClick(View v)
-            {
-                //scanKeg();
-                //Log.i("Scanner Connection", "current card status = " + currentCardStatus);
-                //transmitApdu();
-            }
-        });
 
-        pairReaderButton = (Button) findViewById(R.id.pairReaderButton);
-        pairReaderButton.setOnClickListener(new View.OnClickListener()
-        {
-            @Override
-            public void onClick(View v)
-            {
-                storedScannerAddress = null;
-                Intent pairReaderIntent = new Intent(getApplicationContext(), PairingActivity.class);
-                startActivityForResult(pairReaderIntent, PAIR_READER_REQUESTCODE);
-                /*if(btAdapter != null)
-                {
-                    btAdapter.startLeScan(leScanCallback);
-                }*/
-            }
-        });
 
         hasState = true;
 
@@ -432,19 +402,10 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private void scanKeg()
     {
         String kegUUID = "ERROR";
-        if(!kegIDEditText.getText().toString().matches(""))
-        {
-            kegUUID = kegIDEditText.getText().toString();
-
-            serverURL = serverIPAddress + "?request=storekeg" + "&id=" + itemID + "&kegid=" + kegUUID + "&lat=" + locationReceivedFromLocationUpdates.getLatitude() + "&lon=" + locationReceivedFromLocationUpdates.getLongitude();
-            //lat and long are doubles, will cause issue? nope
-            Log.i("Network Update", "Attempting to start download from scanKeg. " + serverURL);
-            aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
-        }
-        else
-        {
-            Log.e("kegScan Error", "invalid uuid entered.");
-        }
+        serverURL = serverIPAddress + "?request=storekeg" + "&id=" + itemID + "&kegid=" + kegUUID + "&lat=" + locationReceivedFromLocationUpdates.getLatitude() + "&lon=" + locationReceivedFromLocationUpdates.getLongitude();
+        //lat and long are doubles, will cause issue? nope
+        Log.i("Network Update", "Attempting to start download from scanKeg. " + serverURL);
+        aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
     }
 
     private void scanKeg(String kegIDin)
