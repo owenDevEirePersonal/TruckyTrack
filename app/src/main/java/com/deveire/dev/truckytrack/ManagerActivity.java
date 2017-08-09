@@ -1,6 +1,5 @@
 package com.deveire.dev.truckytrack;
 
-import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -35,23 +34,20 @@ import org.json.JSONException;
 
 import java.util.ArrayList;
 
-public class ManagerActivity extends FragmentActivity implements AdapterView.OnItemSelectedListener, OnMapReadyCallback, GoogleApiClient.OnConnectionFailedListener, GoogleApiClient.ConnectionCallbacks, DownloadCallback<String>
+public class ManagerActivity extends FragmentActivity implements AdapterView.OnItemSelectedListener, GoogleApiClient.OnConnectionFailedListener, GoogleApiClient.ConnectionCallbacks, DownloadCallback<String>
 {
 
     private GoogleMap mMap;
 
     private TextView mapText;
-    private Spinner itemsSpinner;
-    private EditText countText;
+    private Spinner stationsSpinner;
+    private EditText alertText;
 
-    private ArrayList<String> itemIdsFromServer;
+    private ArrayList<String> stationIdsFromServer;
     private String currentItemID;
     private int numberOfResultsToRetrieve;
-    private ArrayList<LatLng> allCurrentItemLocations;
 
-    private ArrayList<String> allCurrentKegIDs;
-
-    private Location userLocation;
+    private ArrayList<String> allCurrentStationIDs;
 
     //[Network and periodic location update, Variables]
     private GoogleApiClient mGoogleApiClient;
@@ -86,32 +82,26 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_manager);
-        // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-                .findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
+
 
 
 
         mapText = (TextView) findViewById(R.id.mapText);
-        itemsSpinner = (Spinner) findViewById(R.id.spinner);
-        itemsSpinner.setOnItemSelectedListener(this);
+        stationsSpinner = (Spinner) findViewById(R.id.spinner);
+        stationsSpinner.setOnItemSelectedListener(this);
 
-        itemIdsFromServer = new ArrayList<String>();
-        allCurrentItemLocations = new ArrayList<LatLng>();
+        stationIdsFromServer = new ArrayList<String>();
+
 
         currentItemID = "";
         numberOfResultsToRetrieve = 10;
 
         mapText = (TextView) findViewById(R.id.mapText);
-        itemsSpinner = (Spinner) findViewById(R.id.spinner);
-        countText = (EditText) findViewById(R.id.editText);
-        countText.setText("" + numberOfResultsToRetrieve);
+        stationsSpinner = (Spinner) findViewById(R.id.spinner);
+        alertText = (EditText) findViewById(R.id.editText);
+        alertText.setText("" + numberOfResultsToRetrieve);
 
 
-        userLocation = new Location("Truck Manager");
-        userLocation.setLatitude(52.663585);
-        userLocation.setLongitude(-8.636135);
 
         pingingServerFor = pingingServerFor_Nothing;
 
@@ -196,44 +186,6 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
      * it inside the SupportMapFragment. This method will only be triggered once the user has
      * installed Google Play services and returned to the app.
      */
-    @Override
-    public void onMapReady(GoogleMap googleMap)
-    {
-        mMap = googleMap;
-
-        // Add a markers and move the camera
-        //mMap.addMarker(new MarkerOptions().position(new LatLng(userLocation.getLatitude(), userLocation.getLongitude())).title("You"));
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(userLocation.getLatitude(), userLocation.getLongitude()), 7));
-        mMap.setOnCameraIdleListener(new mapScrolledListener());
-        retrieveLocations();
-        //updateMap(false);
-    }
-
-    private void updateMap(boolean clearPrevious)
-    {
-        if(clearPrevious)
-        {
-            mMap.clear();
-        }
-
-        int i = 0;
-        for (LatLng aloc: allCurrentItemLocations)
-        {
-            if(currentItemID.matches("Current Keg Locations") || currentItemID.matches("09-05-2017 Latest") || currentItemID.matches("09-05-2017 All") || currentItemID.matches("10-05-2017 Latest") || currentItemID.matches("10-05-2017 All") || currentItemID.matches("11-05-2017 Latest") || currentItemID.matches("11-05-2017 All"))
-            {
-                mMap.addMarker(new MarkerOptions().position(aloc).title(allCurrentKegIDs.get(i)));
-                Log.i("Map Update", "Placing Keg Marker " + allCurrentKegIDs.get(i) + " at " + aloc.toString());
-            }
-            else
-            {
-                mMap.addMarker(new MarkerOptions().position(aloc).title("Truck 1"));
-                Log.i("Map Update", "Placing Marker at " + aloc.toString()  + "\n");
-            }
-            i++;
-        }
-        //mMap.addMarker(new MarkerOptions().position(new LatLng(userLocation.getLatitude(), userLocation.getLongitude())).title("You"));
-
-    }
 
 
 
@@ -308,41 +260,41 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     public void onItemSelected(AdapterView<?> parent, View view, int pos, long id)
     {
         //[Get currently selected id from dropdown menu]
-        currentItemID = itemIdsFromServer.get(pos);
+        currentItemID = stationIdsFromServer.get(pos);
         //[/Get currently selected id from dropdown menu]
 
         //if item selected is not the last item(all kegs) or 2nd last then behave normally
-        if(pos == itemIdsFromServer.size() - 1)
+        if(pos == stationIdsFromServer.size() - 1)
         {
             Log.i("Dropdown Update", "Dropdown select, ItemID now equals All Kegs");
             retrieveKegLastLocations();
         }
-        else if(pos == itemIdsFromServer.size() - 2)
+        else if(pos == stationIdsFromServer.size() - 2)
         {
             Log.i("Dropdown Update", "Dropdown select, ItemID now equals 2017-05-10");
             retrieveKegLastLocationsOnDate("2017-05-11");
         }
-        else if(pos == itemIdsFromServer.size() - 3)
+        else if(pos == stationIdsFromServer.size() - 3)
         {
             Log.i("Dropdown Update", "Dropdown select, ItemID now equals 2017-05-10");
             retrieveKegAllLocationsOnDate("2017-05-11");
         }
-        else if(pos == itemIdsFromServer.size() - 4)
+        else if(pos == stationIdsFromServer.size() - 4)
         {
             Log.i("Dropdown Update", "Dropdown select, ItemID now equals 2017-05-10");
             retrieveKegLastLocationsOnDate("2017-05-10");
         }
-        else if(pos == itemIdsFromServer.size() - 5)
+        else if(pos == stationIdsFromServer.size() - 5)
         {
             Log.i("Dropdown Update", "Dropdown select, ItemID now equals 2017-05-10");
             retrieveKegAllLocationsOnDate("2017-05-10");
         }
-        else if(pos == itemIdsFromServer.size() - 6)
+        else if(pos == stationIdsFromServer.size() - 6)
         {
             Log.i("Dropdown Update", "Dropdown select, ItemID now equals 2017-05-10");
             retrieveKegLastLocationsOnDate("2017-05-09");
         }
-        else if(pos == itemIdsFromServer.size() - 7)
+        else if(pos == stationIdsFromServer.size() - 7)
         {
             Log.i("Dropdown Update", "Dropdown select, ItemID now equals 2017-05-10");
             retrieveKegAllLocationsOnDate("2017-05-09");
@@ -352,11 +304,11 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
             Log.i("Dropdown Update", "Dropdown select, ItemID now equals " + parent.getItemAtPosition(pos));
             try
             {
-                numberOfResultsToRetrieve = Integer.getInteger(countText.getText().toString());
+                numberOfResultsToRetrieve = Integer.getInteger(alertText.getText().toString());
             } catch (Exception e)
             {
                 numberOfResultsToRetrieve = 10;
-                countText.setText("" + numberOfResultsToRetrieve);
+                alertText.setText("" + numberOfResultsToRetrieve);
             }
             retrieveLocations();
         }
@@ -372,18 +324,18 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
     private void selectItemOnStartup()
     {
         //[Get currently selected id from dropdown menu]
-        currentItemID = itemIdsFromServer.get(0);
+        currentItemID = stationIdsFromServer.get(0);
         //TODO: replace ID, name system with single string consiting of "id - name"
         //[/Get currently selected id from dropdown menu]
 
         try
         {
-            numberOfResultsToRetrieve = Integer.getInteger(countText.getText().toString());
+            numberOfResultsToRetrieve = Integer.getInteger(alertText.getText().toString());
         }
         catch (Exception e)
         {
             numberOfResultsToRetrieve = 10;
-            countText.setText("" + numberOfResultsToRetrieve);
+            alertText.setText("" + numberOfResultsToRetrieve);
         }
         retrieveLocations();
     }
@@ -459,73 +411,25 @@ public class ManagerActivity extends FragmentActivity implements AdapterView.OnI
                 {
                     case pingingServerFor_ItemIds:
                         Log.i("Network JSON", "pingingServerFor_ItemIds, lets begin, shall we...");
-                        itemIdsFromServer = new ArrayList<String>();
+                        stationIdsFromServer = new ArrayList<String>();
                         for(int i = 0; i < jsonResultFromServer.length(); i++)
                         {
-                            itemIdsFromServer.add(jsonResultFromServer.getJSONObject(i).getString("name"));
+                            stationIdsFromServer.add(jsonResultFromServer.getJSONObject(i).getString("name"));
                         }
 
-                        itemIdsFromServer.add("09-05-2017 Latest");
-                        itemIdsFromServer.add("09-05-2017 All");
-                        itemIdsFromServer.add("10-05-2017 Latest");
-                        itemIdsFromServer.add("10-05-2017 All");
-                        itemIdsFromServer.add("11-05-2017 Latest");
-                        itemIdsFromServer.add("11-05-2017 All");
-                        itemIdsFromServer.add("Current Keg Locations");
+                        stationIdsFromServer.add("09-05-2017 Latest");
+                        stationIdsFromServer.add("09-05-2017 All");
+                        stationIdsFromServer.add("10-05-2017 Latest");
+                        stationIdsFromServer.add("10-05-2017 All");
+                        stationIdsFromServer.add("11-05-2017 Latest");
+                        stationIdsFromServer.add("11-05-2017 All");
+                        stationIdsFromServer.add("Current Keg Locations");
 
 
-                        ArrayAdapter<String> adapter = new ArrayAdapter<String>(ManagerActivity.this, android.R.layout.simple_spinner_dropdown_item, itemIdsFromServer);
-                        itemsSpinner.setAdapter(adapter);
-
-                        break;
-
-                    case pingingServerFor_Locations:
-                        allCurrentItemLocations = new ArrayList<LatLng>();
-
-                        for(int i = 0; i < jsonResultFromServer.length(); i++)
-                        {
-                            LatLng aloc = new LatLng(jsonResultFromServer.getJSONObject(i).getDouble("lat"), jsonResultFromServer.getJSONObject(i).getDouble("lon"));
-                            allCurrentItemLocations.add(aloc);
-                            Log.i("Boop Test", "BOOP LOCATION LOADED " + aloc.toString());
-                        }
-                        Log.i("Location Update", "Recieved locations.");
-                        updateMap(true);
-                        mapText.setText("Receving Locations");
+                        ArrayAdapter<String> adapter = new ArrayAdapter<String>(ManagerActivity.this, android.R.layout.simple_spinner_dropdown_item, stationIdsFromServer);
+                        stationsSpinner.setAdapter(adapter);
 
                         break;
-
-                    case pingingServerFor_Extra_Locations:
-                        allCurrentItemLocations = new ArrayList<LatLng>();
-
-                        for(int i = 0; i < jsonResultFromServer.length(); i++)
-                        {
-                            LatLng aloc = new LatLng(jsonResultFromServer.getJSONObject(i).getDouble("lat"), jsonResultFromServer.getJSONObject(i).getDouble("lon"));
-                            allCurrentItemLocations.add(aloc);
-                        }
-
-                        Log.i("Location Update", "Recieved extra locations.");
-                        updateMap(false);
-                        mapText.setText("Receving Locations");
-
-                        break;
-
-                    case pingingServerFor_Keg_Last_Locations:
-                        allCurrentItemLocations = new ArrayList<LatLng>();
-                        allCurrentKegIDs = new ArrayList<String>();
-
-                        for(int i = 0; i < jsonResultFromServer.length(); i++)
-                        {
-                            LatLng aloc = new LatLng(jsonResultFromServer.getJSONObject(i).getDouble("lat"), jsonResultFromServer.getJSONObject(i).getDouble("lon"));
-                            allCurrentItemLocations.add(aloc);
-                            allCurrentKegIDs.add(jsonResultFromServer.getJSONObject(i).getString("kegID"));
-                            Log.i("Boop Test", "BOOP KEG LOCATION LOADED " + aloc.toString());
-                        }
-                        Log.i("Location Update", "Recieved locations.");
-                        updateMap(true);
-                        mapText.setText("Receving Keg Locations");
-
-                        break;
-
 
                     default: Log.e("Network Update", "PingingServerFor value does not match any known type"); break;
                 }
