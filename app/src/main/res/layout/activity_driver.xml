@@ -14,7 +14,8 @@
         android:text="TextView"
         map:layout_constraintTop_toTopOf="parent"
         android:layout_marginLeft="8dp"
-        map:layout_constraintLeft_toLeftOf="parent"/>
+        map:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginStart="8dp"/>
 
     <EditText
         android:id="@+id/nameEditText"
@@ -30,39 +31,58 @@
         map:layout_constraintHorizontal_bias="1.0"
         map:layout_constraintTop_toTopOf="parent"
         android:layout_marginTop="8dp"
-        />
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"/>
 
-    <TextView
-        android:id="@+id/kegDataText"
+    <ScrollView
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginBottom="8dp"
-        android:layout_marginLeft="8dp"
         android:layout_marginRight="8dp"
-        android:text="TextView"
-        map:layout_constraintBottom_toBottomOf="parent"
-        map:layout_constraintHorizontal_bias="1.0"
-        map:layout_constraintLeft_toLeftOf="parent"
         map:layout_constraintRight_toRightOf="parent"
+        android:layout_marginLeft="8dp"
+        map:layout_constraintLeft_toLeftOf="parent"
+        map:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginBottom="8dp"
         android:layout_marginTop="8dp"
-        map:layout_constraintTop_toBottomOf="@+id/nameEditText"
-        map:layout_constraintVertical_bias="1.0"/>
+        map:layout_constraintTop_toBottomOf="@+id/nameEditText">
+
+        <TextView
+            android:id="@+id/kegDataText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginLeft="8dp"
+            android:layout_marginRight="8dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:text="TextView"
+            map:layout_constraintBottom_toBottomOf="parent"
+            map:layout_constraintHorizontal_bias="1.0"
+            map:layout_constraintLeft_toLeftOf="parent"
+            map:layout_constraintRight_toRightOf="parent"
+            map:layout_constraintTop_toBottomOf="@+id/nameEditText"
+            map:layout_constraintVertical_bias="1.0"/>
+    </ScrollView>
 
     <ImageView
         android:id="@+id/addImageView"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginBottom="8dp"
+        android:layout_marginEnd="8dp"
         android:layout_marginLeft="8dp"
         android:layout_marginRight="8dp"
+        android:layout_marginStart="8dp"
         android:layout_marginTop="8dp"
-        android:scaleType="fitXY"
+        android:scaleType="fitStart"
+        android:src="@drawable/drinkaware_ad"
         map:layout_constraintBottom_toBottomOf="parent"
         map:layout_constraintHorizontal_bias="0.0"
         map:layout_constraintLeft_toLeftOf="parent"
         map:layout_constraintRight_toRightOf="parent"
         map:layout_constraintTop_toBottomOf="@+id/nameEditText"
         map:layout_constraintVertical_bias="0.0"
-        map:srcCompat="@mipmap/ad_rabbit"/>
+        map:srcCompat="@drawable/drinkaware_ad"/>
 </android.support.constraint.ConstraintLayout>
 
