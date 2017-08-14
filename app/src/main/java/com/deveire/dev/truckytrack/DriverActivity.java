@@ -1,5 +1,6 @@
 package com.deveire.dev.truckytrack;
 
+import android.app.ActivityManager;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothA2dp;
 import android.bluetooth.BluetoothAdapter;
@@ -103,6 +104,9 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private TextToSpeech toSpeech;
     private String speechInText;
     private HashMap<String, String> endOfSpeakIndentifier;
+
+    private Timer adSwapTimer;
+    private int currentAdIndex;
 
     //[BLE Variables]
     private String storedScannerAddress;
@@ -391,6 +395,31 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         currentStationID = "bathroom1";
         nameEditText.setText(currentStationID);
 
+        currentAdIndex = 1;
+
+        adSwapTimer = new Timer("adSwapTimer");
+        adSwapTimer.schedule(new TimerTask()
+        {
+            @Override
+            public void run()
+            {
+                runOnUiThread(new Runnable()
+                {
+                    @Override
+                    public void run()
+                    {
+                        Log.i("Ad Update", "Changing ad");
+                        switch (currentAdIndex)
+                        {
+                            case 1: adImageView.setImageResource(R.drawable.drinkaware_awareness_1); currentAdIndex++; break;
+                            case 2: adImageView.setImageResource(R.drawable.drinkaware_ad2); currentAdIndex = 1; break;
+                        }
+                    }
+                });
+
+            }
+        }, 0, 20000);
+
         setupTileScanner();
         //setupBluetoothScanner();
         /*
@@ -418,6 +447,29 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         hasSufferedAtLeastOneFailureToReadUID = true;
         tileReaderTimer = new Timer();
         connectToTileScanner();
+
+        /*adSwapTimer.schedule(new TimerTask()
+        {
+            @Override
+            public void run()
+            {
+                runOnUiThread(new Runnable()
+                {
+                    @Override
+                    public void run()
+                    {
+                        Log.i("Ad Update", "Changing ad");
+                        switch (currentAdIndex)
+                        {
+                            case 1: adImageView.setImageResource(R.drawable.drinkaware_awareness_1); currentAdIndex++; break;
+                            case 2: adImageView.setImageResource(R.drawable.drinkaware_ad2); currentAdIndex = 1; break;
+                        }
+                        adImageView.jumpDrawablesToCurrentState();
+                    }
+                });
+
+            }
+        }, 0, 20000);*/
 
         //setupHeadset();
 
@@ -458,6 +510,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             mScanner.stopScan();
         }
 
+        adSwapTimer.cancel();
+        adSwapTimer.purge();
 
         //headsetTimer.cancel();
         //headsetTimer.purge();
