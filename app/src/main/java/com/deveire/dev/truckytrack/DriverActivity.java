@@ -105,8 +105,6 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private String speechInText;
     private HashMap<String, String> endOfSpeakIndentifier;
 
-    private Timer adSwapTimer;
-    private int currentAdIndex;
 
     //[BLE Variables]
     private String storedScannerAddress;
@@ -226,10 +224,6 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         //kegIDEditText = (EditText) findViewById(R.id.kegIDEditText);
         //scanKegButton = (Button) findViewById(R.id.scanKegButton);
 
-        adImageView = (ImageView) findViewById(R.id.addImageView);
-        adImageView.setImageResource(R.drawable.drinkaware_ad2);
-        adImageView.setVisibility(View.VISIBLE);
-
 
         /*scanKegButton.setOnClickListener(new View.OnClickListener()
         {
@@ -337,7 +331,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
 
         pingingServerFor_alertData = false;
-        alertDataText = (TextView) findViewById(R.id.kegDataText);
+        alertDataText = (TextView) findViewById(R.id.mapText);
 
         toSpeech = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
             @Override
@@ -395,32 +389,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         currentStationID = "bathroom1";
         nameEditText.setText(currentStationID);
 
-        currentAdIndex = 1;
 
-        adSwapTimer = new Timer("adSwapTimer");
-        adSwapTimer.schedule(new TimerTask()
-        {
-            @Override
-            public void run()
-            {
-                runOnUiThread(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        Log.i("Ad Update", "Changing ad");
-                        switch (currentAdIndex)
-                        {
-                            case 1: adImageView.setImageResource(R.drawable.drinkaware_awareness_1); currentAdIndex++; break;
-                            case 2: adImageView.setImageResource(R.drawable.drinkaware_ad2); currentAdIndex = 1; break;
-                        }
-                    }
-                });
-
-            }
-        }, 0, 20000);
-
-        setupTileScanner();
         //setupBluetoothScanner();
         /*
         barReaderTimer = new Timer();
@@ -430,6 +399,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
 
         //setupHeadset();
+        setupTileScanner();
 
         restoreSavedValues(savedInstanceState);
 
@@ -447,31 +417,6 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         hasSufferedAtLeastOneFailureToReadUID = true;
         tileReaderTimer = new Timer();
         connectToTileScanner();
-
-        /*adSwapTimer.schedule(new TimerTask()
-        {
-            @Override
-            public void run()
-            {
-                runOnUiThread(new Runnable()
-                {
-                    @Override
-                    public void run()
-                    {
-                        Log.i("Ad Update", "Changing ad");
-                        switch (currentAdIndex)
-                        {
-                            case 1: adImageView.setImageResource(R.drawable.drinkaware_awareness_1); currentAdIndex++; break;
-                            case 2: adImageView.setImageResource(R.drawable.drinkaware_ad2); currentAdIndex = 1; break;
-                        }
-                        adImageView.jumpDrawablesToCurrentState();
-                    }
-                });
-
-            }
-        }, 0, 20000);*/
-
-        //setupHeadset();
 
         //barReaderTimer = new Timer();
 
@@ -509,9 +454,6 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         {
             mScanner.stopScan();
         }
-
-        adSwapTimer.cancel();
-        adSwapTimer.purge();
 
         //headsetTimer.cancel();
         //headsetTimer.purge();
@@ -714,213 +656,6 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             Log.e("kegData Error", "invalid uuid entered. " + kegIDin);
         }
     }
-
-    public void speakAlerts(ArrayList<String> inAlerts)
-    {
-        speechInText = "";
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-        {
-            adImageView.setVisibility(View.INVISIBLE);
-            if (inAlerts.size() == 0)
-            {
-                toSpeech.speak("You have no new alerts.", TextToSpeech.QUEUE_FLUSH, null, "newAlerts");
-                speechInText = "You have no new alerts:\n--------------------------------------------------------\n";
-            }
-            else
-            {
-                toSpeech.speak("You have new alerts.", TextToSpeech.QUEUE_FLUSH, null, "newAlerts");
-                speechInText = "You have new alerts:\n--------------------------------------------------------\n";
-                for (String aAlert : inAlerts)
-                {
-                    toSpeech.speak(aAlert, TextToSpeech.QUEUE_ADD, null, null);
-                    speechInText += "\n" + aAlert + "\n";
-                }
-            }
-
-            speakInstructions(currentUID);
-        }
-    }
-
-    public void speakInstructions(String uidIn)
-    {
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-        {
-            switch (uidIn)
-            {
-                case "04753c527d3680":
-                    speakDailyBathroomInstruction(uidIn);
-                    break;
-                case "0433bf3aa94a81":
-                    toSpeech.speak("Here are your instructions, Employee Number: " + uidIn.toString() + " , ", TextToSpeech.QUEUE_ADD, null, "instruct1");
-                    speechInText += "\nHere are your instructions, Employee Number " + uidIn.toString() + ":\n--------------------------------------------------------\n";
-                    toSpeech.speak(" 1. Please ask your supervisor for instructions.", TextToSpeech.QUEUE_ADD, null, "instruct2");
-                    speechInText += "\n1. Please ask your supervisor for instructions.\n";
-                    break;
-                case "0413b3caa74a82":
-                    toSpeech.speak("Here are your instructions, Employee Number: " + uidIn.toString(), TextToSpeech.QUEUE_ADD, null, "instruct1");
-                    speechInText += "\nHere are your instructions, Employee Number " + uidIn.toString() + ":\n--------------------------------------------------------\n";
-                    toSpeech.speak(" 1. Please replace the toilet paper.", TextToSpeech.QUEUE_ADD, null, "instruct2");
-                    speechInText += "\n1. Please replace the toilet paper.\n";
-                    toSpeech.speak(" 2. Replace the soap.", TextToSpeech.QUEUE_ADD, null, "instruct3");
-                    speechInText += "\n2. Replace the soap.\n";
-                    toSpeech.speak(" 3. Go to the pub, grab a pint,, and wait for this whooole thing to blow over.", TextToSpeech.QUEUE_ADD, null, "instruct4");
-                    speechInText += "\n3. Go to the pub, grab a pint, and wait for this whole thing to blow over.\n";
-                    break;
-                default:
-                    toSpeech.speak("Your ID, " + uidIn.toString() + ", is not on record,", TextToSpeech.QUEUE_ADD, null, "instruct1");
-                    toSpeech.speak("  please report to your supervisor.", TextToSpeech.QUEUE_ADD, null, "instruct2");
-                    speechInText += "\nYour id, " + uidIn.toString() + ", is not on record, please report to your supervisor.\n";
-                    break;
-            }
-            toSpeech.speak("End of Instructions", TextToSpeech.QUEUE_ADD, null, "End");
-            alertDataText.setText(speechInText);
-
-        }
-    }
-
-    public void speakDailyBathroomInstruction(String uidIn)
-    {
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-        {
-            toSpeech.speak("Here are your instructions, Employee Number: " + uidIn.toString(), TextToSpeech.QUEUE_ADD, null, "instruct1");
-            speechInText += "\nHere are your instructions, Employee Number " + uidIn.toString() + ":\n--------------------------------------------------------\n";
-            toSpeech.speak(" 1. Check slash change the toilet paper.", TextToSpeech.QUEUE_ADD, null, "instruct2");
-            speechInText += "\n1. Check/Change the toilet paper.\n";
-            toSpeech.speak(" 2. Mop the floor.", TextToSpeech.QUEUE_ADD, null, "instruct3");
-            speechInText += "\n2. Mop the floor.\n";
-            toSpeech.speak(" 3. Empty the Trash.", TextToSpeech.QUEUE_ADD, null, "instruct4");
-            speechInText += "\n3. Empty the Trash.\n";
-            toSpeech.speak(" 4. Wipe the Mirror", TextToSpeech.QUEUE_ADD, null, null);
-            speechInText += "\n 4. Wipe the Mirror.\n";
-            toSpeech.speak(" 5. Clean the Drains", TextToSpeech.QUEUE_ADD, null, null);
-            speechInText += "\n 5. Clean the Drains.\n";
-            toSpeech.speak(" 6. Change the Towels", TextToSpeech.QUEUE_ADD, null, null);
-            speechInText += "\n 6. Change the Towels.\n";
-
-            Calendar aCalender = Calendar.getInstance();
-            toSpeech.speak(" Today's Weekly Task:", TextToSpeech.QUEUE_ADD, null, null);
-            speechInText += "\n\nToday's Weekly Task:\n--------------------------------------------------------\n";
-            switch (aCalender.get(Calendar.DAY_OF_WEEK))
-            {
-                case Calendar.MONDAY:
-                    toSpeech.speak(" 7. Clean the Faucets", TextToSpeech.QUEUE_ADD, null, null);
-                    speechInText += "\n 7. Clean the Faucets.\n";
-                break;
-
-                case Calendar.TUESDAY:
-                    toSpeech.speak(" 7. Wash the Rugs", TextToSpeech.QUEUE_ADD, null, null);
-                    speechInText += "\n 7. Wash the Rugs.\n";
-                    break;
-
-                case Calendar.WEDNESDAY:
-                    toSpeech.speak(" 7. Refill the medicine cabinet", TextToSpeech.QUEUE_ADD, null, null);
-                    speechInText += "\n 7. Refill the medicine cabinet.\n";
-                    break;
-
-                case Calendar.THURSDAY:
-                    toSpeech.speak(" 7. Wash the walls", TextToSpeech.QUEUE_ADD, null, null);
-                    speechInText += "\n 7. Wash the walls.\n";
-                    break;
-
-                case Calendar.FRIDAY:
-                    toSpeech.speak(" 7. Scrub the floors and clean the grout", TextToSpeech.QUEUE_ADD, null, null);
-                    speechInText += "\n 7. Scrubs the floors and clean the grout.\n";
-                    break;
-                case Calendar.SATURDAY:
-                    toSpeech.speak(" 7. Clean the toilet bowls, the sinks and the tubs.", TextToSpeech.QUEUE_ADD, null, null);
-                    speechInText += "\n 7. Clean the toilet bowls, the sinks and the tubs.\n";
-                    break;
-            }
-
-            toSpeech.speak(" Monthly Tasks Remaing: ", TextToSpeech.QUEUE_ADD, null, null);
-            speechInText += "\n\n Monthly Tasks Remaing:\n--------------------------------------------------------\n";
-            toSpeech.speak(" 8. Clean the Windows and Vents.", TextToSpeech.QUEUE_ADD, null, null);
-            speechInText += "\n 8. Clean the Windows and Vents.\n";
-            toSpeech.speak(" 9. Clean the showers.", TextToSpeech.QUEUE_ADD, null, null);
-            speechInText += "\n 9. Clean the showers.\n";
-            toSpeech.speak(" 10. Dust the ceilings.", TextToSpeech.QUEUE_ADD, null, null);
-            speechInText += "\n 10. Dust the ceilings.\n";
-            toSpeech.speak(" 11. Wipe the front and back of the doors.", TextToSpeech.QUEUE_ADD, null, null);
-            speechInText += "\n 11. Wipe the front and back of the doors.\n";
-            toSpeech.speak(" 12. Purge the Toiletries.", TextToSpeech.QUEUE_ADD, null, null);
-            speechInText += "\n 12. Purge the Toiletries.\n";
-            toSpeech.speak(" 13. Wash the shower curtains.", TextToSpeech.QUEUE_ADD, null, null);
-            speechInText += "\n 13. Wash the shower curtains.\n";
-        }
-    }
-
-//---[Headset Code]
-/*
-    private void setupHeadset()
-    {
-        allHeadsetMacAddresses = new ArrayList<String>();
-        allHeadsetMacAddresses.add("E9:08:EF:C4:1A:65");
-
-        btAdapter = BluetoothAdapter.getDefaultAdapter();
-        btAdapter.getProfileProxy(this, new BluetoothProfile.ServiceListener()
-        {
-            @Override
-            public void onServiceConnected(int profile, BluetoothProfile proxy)
-            {
-                currentHeadsetProfile = (BluetoothA2dp) proxy;
-                Log.i("Headset Update", "Storing Proxy Profile: " + proxy.toString());
-                try
-                {
-                    connectMethod = BluetoothA2dp.class.getDeclaredMethod("connect", BluetoothDevice.class);
-                    Log.i("Headset Update", "Storing Method connect: " + connectMethod.toString());
-                }
-                catch (NoSuchMethodException e)
-                {
-                    e.printStackTrace();
-                }
-            }
-
-            @Override
-            public void onServiceDisconnected(int profile)
-            {
-                Log.i("Headset Update", "a service has disconnected: " + profile);
-            }
-        },   BluetoothProfile.A2DP);
-
-
-        headsetTimer = new Timer();
-
-        headsetTimer.schedule(new TimerTask()
-        {
-            @Override
-            public void run()
-            {
-                Log.i("Headset Update", "Device is badger:" + currentHeadsetProfile.getConnectionState(currentHeadsetDevice));
-                if(currentHeadsetProfile.getConnectionState(currentHeadsetDevice) != BluetoothProfile.STATE_CONNECTED)
-                {
-                    for (String aHeadsetAddress: allHeadsetMacAddresses)
-                    {
-                        Log.i("Headset Update", "Attempting to link to headset at address: " + aHeadsetAddress);
-                        currentHeadsetDevice = btAdapter.getRemoteDevice(aHeadsetAddress);
-                        Log.i("Headset Update", "Connected Devices: " + btAdapter.getBondedDevices().toString());
-                        try
-                        {
-                            Log.i("Headset Update", "Attempting to connect to device, with device: " + currentHeadsetDevice + ". and profile: " + currentHeadsetProfile);
-                            connectMethod.invoke(currentHeadsetProfile, currentHeadsetDevice);
-                        }
-                        catch (IllegalAccessException e)
-                        {
-                            Log.e("Headset Update", "Error Illegal Access exception");
-                            e.printStackTrace();
-                        }
-                        catch (InvocationTargetException e)
-                        {
-                            Log.i("Headset Update", "Error Invocation Target exception");
-                            e.printStackTrace();
-                        }
-                    }
-                }
-            }
-        }, 5000, 5000);
-
-    }
-*/
-//---[/Headset Code]
 
 
 //+++[TileScanner Code]
@@ -1736,8 +1471,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                             results.add(jsonResultFromServer.getJSONObject(i).getString("alert"));
                         }
 
-                        //mapText.setText(result);
-                        speakAlerts(results);
+
                     }
                     else
                     {

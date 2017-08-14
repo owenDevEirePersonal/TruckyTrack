@@ -34,6 +34,12 @@
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"/>
 
+    <ListView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        tools:layout_editor_absoluteY="8dp"
+        tools:layout_editor_absoluteX="8dp"/>
+
     <ScrollView
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -44,45 +50,26 @@
         map:layout_constraintBottom_toBottomOf="parent"
         android:layout_marginBottom="8dp"
         android:layout_marginTop="8dp"
-        map:layout_constraintTop_toBottomOf="@+id/nameEditText">
+        map:layout_constraintTop_toBottomOf="@+id/nameEditText"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp">
 
-        <TextView
-            android:id="@+id/kegDataText"
+        <TableLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:layout_marginEnd="8dp"
-            android:layout_marginLeft="8dp"
-            android:layout_marginRight="8dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginTop="8dp"
-            android:text="TextView"
-            map:layout_constraintBottom_toBottomOf="parent"
-            map:layout_constraintHorizontal_bias="1.0"
-            map:layout_constraintLeft_toLeftOf="parent"
-            map:layout_constraintRight_toRightOf="parent"
-            map:layout_constraintTop_toBottomOf="@+id/nameEditText"
-            map:layout_constraintVertical_bias="1.0"/>
+            android:layout_height="wrap_content">
+
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <view
+                    class="com.deveire.dev.truckytrack.OrderView"
+                    android:id="@+id/view"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"/>
+            </TableRow>
+        </TableLayout>
     </ScrollView>
 
-    <ImageView
-        android:id="@+id/addImageView"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginBottom="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginLeft="8dp"
-        android:layout_marginRight="8dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="8dp"
-        android:scaleType="fitStart"
-        android:src="@drawable/drinkaware_ad"
-        map:layout_constraintBottom_toBottomOf="parent"
-        map:layout_constraintHorizontal_bias="0.0"
-        map:layout_constraintLeft_toLeftOf="parent"
-        map:layout_constraintRight_toRightOf="parent"
-        map:layout_constraintTop_toBottomOf="@+id/nameEditText"
-        map:layout_constraintVertical_bias="0.0"
-        map:srcCompat="@drawable/drinkaware_ad"/>
 </android.support.constraint.ConstraintLayout>
 
