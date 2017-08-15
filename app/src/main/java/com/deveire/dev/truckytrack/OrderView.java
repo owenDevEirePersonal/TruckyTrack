@@ -4,6 +4,7 @@ import android.content.Context;
 import android.support.constraint.ConstraintLayout;
 import android.util.AttributeSet;
 import android.view.View;
+import android.view.ViewManager;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -22,6 +23,7 @@ public class OrderView extends ConstraintLayout
     private TextView drinkCount;
     private ImageButton dismissButton;
     private TextView patronPreferedDrink;
+    private ImageView bottomBar;
 
     public OrderView(Context context)
     {
@@ -42,14 +44,16 @@ public class OrderView extends ConstraintLayout
         patronPreferedDrink = (TextView) rootView.findViewById(R.id.patronPreferedDrink);
         patronPhoto = (ImageView) rootView.findViewById(R.id.patronPhoto);
         drinkCounterImage = (ImageView) rootView.findViewById(R.id.drinkCounterImage);
+        bottomBar = (ImageView) rootView.findViewById(R.id.bottomBar);
         dismissButton = (ImageButton) rootView.findViewById(R.id.dismissButton);
+
 
         dismissButton.setOnClickListener(new View.OnClickListener()
         {
             @Override
             public void onClick(View v)
             {
-
+                ((ViewManager)rootView.getParent().getParent()).removeView((View) rootView.getParent());
             }
         });
     }

@@ -10,66 +10,104 @@
         android:id="@+id/mapText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="16dp"
         android:text="TextView"
         map:layout_constraintTop_toTopOf="parent"
-        android:layout_marginLeft="8dp"
+        android:layout_marginLeft="163dp"
         map:layout_constraintLeft_toLeftOf="parent"
-        android:layout_marginStart="8dp"/>
-
-    <EditText
-        android:id="@+id/nameEditText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:ems="10"
-        android:inputType="textPersonName"
-        android:text="Name"
+        android:layout_marginStart="8dp"
         android:layout_marginRight="8dp"
         map:layout_constraintRight_toRightOf="parent"
-        map:layout_constraintLeft_toRightOf="@+id/mapText"
-        android:layout_marginLeft="8dp"
-        map:layout_constraintHorizontal_bias="1.0"
-        map:layout_constraintTop_toTopOf="parent"
-        android:layout_marginTop="8dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp"/>
-
-    <ListView
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        tools:layout_editor_absoluteY="8dp"
-        tools:layout_editor_absoluteX="8dp"/>
+        map:layout_constraintHorizontal_bias="0.0"/>
 
     <ScrollView
+        android:id="@+id/scrollView"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:layout_marginRight="8dp"
-        map:layout_constraintRight_toRightOf="parent"
-        android:layout_marginLeft="8dp"
-        map:layout_constraintLeft_toLeftOf="parent"
-        map:layout_constraintBottom_toBottomOf="parent"
         android:layout_marginBottom="8dp"
-        android:layout_marginTop="8dp"
-        map:layout_constraintTop_toBottomOf="@+id/nameEditText"
+        android:layout_marginEnd="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
         android:layout_marginStart="8dp"
-        android:layout_marginEnd="8dp">
+        android:layout_marginTop="8dp"
+        map:layout_constraintBottom_toBottomOf="parent"
+        map:layout_constraintHorizontal_bias="0.0"
+        map:layout_constraintLeft_toLeftOf="parent"
+        map:layout_constraintRight_toRightOf="parent"
+        map:layout_constraintTop_toBottomOf="@+id/setupButton"
+        map:layout_constraintVertical_bias="0.0">
 
         <TableLayout
+            android:id="@+id/ordersTable"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
             <TableRow
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="match_parent"
+                tools:layout_editor_absoluteX="8dp"
+                tools:layout_editor_absoluteY="8dp">
 
                 <view
-                    class="com.deveire.dev.truckytrack.OrderView"
                     android:id="@+id/view"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"/>
+                    class="com.deveire.dev.truckytrack.OrderView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="8dp"
+                    android:layout_marginRight="8dp"
+                    android:layout_weight="1"
+                    map:layout_constraintLeft_toLeftOf="parent"
+                    map:layout_constraintRight_toRightOf="parent"
+                    tools:layout_editor_absoluteY="0dp"/>
             </TableRow>
+
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                tools:layout_editor_absoluteX="8dp"
+                tools:layout_editor_absoluteY="8dp">
+
+                <view
+                    android:id="@+id/view"
+                    class="com.deveire.dev.truckytrack.OrderView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginLeft="8dp"
+                    android:layout_marginRight="8dp"
+                    android:layout_weight="1"
+                    map:layout_constraintLeft_toLeftOf="parent"
+                    map:layout_constraintRight_toRightOf="parent"
+                    tools:layout_editor_absoluteY="0dp"/>
+            </TableRow>
+
         </TableLayout>
     </ScrollView>
+
+    <TextView
+        android:id="@+id/balanceText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginTop="16dp"
+        android:text="Balance: 0€"
+        map:layout_constraintLeft_toLeftOf="parent"
+        map:layout_constraintRight_toRightOf="parent"
+        map:layout_constraintTop_toTopOf="parent"/>
+
+    <Button
+        android:id="@+id/setupButton"
+        android:layout_width="wrap_content"
+        android:layout_height="35dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginTop="4dp"
+        android:text="Setup"
+        map:layout_constraintHorizontal_bias="1.0"
+        map:layout_constraintLeft_toRightOf="@+id/balanceText"
+        map:layout_constraintRight_toRightOf="parent"
+        map:layout_constraintTop_toTopOf="parent"/>
 
 </android.support.constraint.ConstraintLayout>
 

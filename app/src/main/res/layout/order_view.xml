@@ -4,21 +4,23 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:layout_weight="1">
 
 
     <TextView
         android:id="@+id/patronName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="John Name"
-        app:layout_constraintTop_toTopOf="@+id/patronPhoto"
-        android:layout_marginTop="8dp"
-        app:layout_constraintBottom_toBottomOf="parent"
         android:layout_marginBottom="8dp"
-        app:layout_constraintVertical_bias="0.0"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="8dp"
+        android:text="John Name"
+        android:textColor="@color/cast_expanded_controller_background_color"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toRightOf="@+id/patronPhoto"
-        android:layout_marginLeft="8dp"/>
+        app:layout_constraintTop_toTopOf="@+id/patronPhoto"
+        app:layout_constraintVertical_bias="0.0"/>
 
     <TextView
         android:id="@+id/drinkCount"
@@ -29,6 +31,7 @@
         android:layout_marginRight="8dp"
         android:layout_marginTop="8dp"
         android:text="0"
+        android:textColor="@color/colorPrimaryDark"
         android:translationZ="0dp"
         app:layout_constraintBottom_toBottomOf="@+id/drinkCounterImage"
         app:layout_constraintLeft_toLeftOf="@+id/drinkCounterImage"
@@ -39,27 +42,29 @@
         android:id="@+id/patronPreferedDrink"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Drink"
-        app:layout_constraintLeft_toRightOf="@+id/patronName"
-        android:layout_marginLeft="32dp"
-        app:layout_constraintTop_toTopOf="parent"
-        android:layout_marginTop="8dp"
-        app:layout_constraintBottom_toBottomOf="@+id/patronPhoto"
         android:layout_marginBottom="8dp"
+        android:layout_marginLeft="32dp"
+        android:layout_marginTop="8dp"
+        android:text="Drink"
+        android:textColor="@color/cast_expanded_controller_background_color"
+        app:layout_constraintBottom_toBottomOf="@+id/patronPhoto"
+        app:layout_constraintLeft_toRightOf="@+id/patronName"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.521"/>
 
     <ImageView
         android:id="@+id/patronPhoto"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:srcCompat="@mipmap/ad_rabbit"
+        android:layout_marginBottom="8dp"
         android:layout_marginLeft="8dp"
+        android:layout_marginTop="8dp"
+        android:src="@mipmap/ad_rabbit"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:layout_marginTop="8dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_marginBottom="8dp"
-        app:layout_constraintVertical_bias="0.0"/>
+        app:layout_constraintVertical_bias="0.0"
+        app:srcCompat="@mipmap/ad_rabbit"/>
 
     <ImageView
         android:id="@+id/drinkCounterImage"
@@ -67,20 +72,41 @@
         android:layout_height="33dp"
         android:layout_marginLeft="8dp"
         android:layout_marginTop="8dp"
+        android:src="@drawable/drinkcountericon"
         android:translationZ="-1dp"
         app:layout_constraintLeft_toRightOf="@+id/patronPhoto"
         app:layout_constraintTop_toBottomOf="@+id/patronName"
-        app:srcCompat="@mipmap/ad_rabbit"/>
+        app:srcCompat="@drawable/drinkcountericon"/>
 
     <ImageButton
         android:id="@+id/dismissButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:backgroundTint="@android:color/transparent"
-        app:srcCompat="@drawable/ic_close_light"
+        android:layout_marginLeft="8dp"
         android:layout_marginRight="8dp"
+        android:layout_marginTop="8dp"
+        android:backgroundTint="@android:color/transparent"
+        android:src="@drawable/ic_close_light"
+        app:layout_constraintHorizontal_bias="1.0"
+        app:layout_constraintLeft_toRightOf="@+id/patronPreferedDrink"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        android:layout_marginTop="8dp"/>
+        app:srcCompat="@drawable/ic_close_light"/>
+
+    <ImageView
+        android:id="@+id/bottomBar"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginTop="8dp"
+        android:src="@color/colorPrimary"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/drinkCounterImage"
+        app:layout_constraintVertical_bias="0.0"
+        app:srcCompat="@color/colorPrimary"/>
 </android.support.constraint.ConstraintLayout>
 

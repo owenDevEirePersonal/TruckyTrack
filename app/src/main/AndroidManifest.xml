@@ -32,8 +32,7 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_key"/>
 
-        <activity
-            android:name=".MainActivity">
+        <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
@@ -49,6 +48,8 @@
             android:label="@string/title_activity_driver">
         </activity>
         <activity android:name=".PairingActivity">
+        </activity>
+        <activity android:name=".SetupPatronActivity">
         </activity>
     </application>
 

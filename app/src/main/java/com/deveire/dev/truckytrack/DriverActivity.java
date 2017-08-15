@@ -42,6 +42,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 import android.widget.TextView;
 
 
@@ -87,11 +89,10 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private GoogleMap mMap;
 
     private TextView mapText;
-    private EditText nameEditText;
-    private EditText kegIDEditText;
-    private Button scanKegButton;
-    private Button pairReaderButton;
+    private TextView balanceText;
+    private TableLayout ordersTable;
     private ImageView adImageView;
+    private Button setupButton;
 
     final static int PAIR_READER_REQUESTCODE = 9;
 
@@ -220,9 +221,18 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
 
         mapText = (TextView) findViewById(R.id.mapText);
-        nameEditText = (EditText) findViewById(R.id.nameEditText);
-        //kegIDEditText = (EditText) findViewById(R.id.kegIDEditText);
-        //scanKegButton = (Button) findViewById(R.id.scanKegButton);
+        balanceText = (TextView) findViewById(R.id.balanceText);
+        ordersTable = (TableLayout) findViewById(R.id.ordersTable);
+        setupButton = (Button) findViewById(R.id.setupButton);
+        setupButton.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                Intent i = new Intent(getApplicationContext(), SetupPatronActivity.class);
+                startActivity(i);
+            }
+        });
 
 
         /*scanKegButton.setOnClickListener(new View.OnClickListener()
@@ -261,7 +271,6 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         savedData = this.getApplicationContext().getSharedPreferences("TruckyTrack SavedData", Context.MODE_PRIVATE);
         itemName = savedData.getString("itemName", "Unknown");
         itemID = savedData.getInt("itemID", 0);
-        nameEditText.setText(itemName);
 
 
         pingingServer = false;
@@ -387,7 +396,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
         currentUID = "";
         currentStationID = "bathroom1";
-        nameEditText.setText(currentStationID);
+
 
 
         //setupBluetoothScanner();
@@ -399,6 +408,9 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
 
         //setupHeadset();
+
+
+
         setupTileScanner();
 
         restoreSavedValues(savedInstanceState);
@@ -488,8 +500,6 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         hasState = false;
 
         SharedPreferences.Editor edit = savedData.edit();
-        edit.putString("itemName", nameEditText.getText().toString());
-        edit.putInt("itemID", itemID);
 
         //edit.putString("ScannerMacAddress", storedScannerAddress);
 
@@ -527,6 +537,17 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
             }
         }
+    }
+
+    private void createOrder(String inUID)
+    {
+        TableRow newRow = new TableRow(getApplicationContext());
+        ordersTable.addView(newRow);
+        OrderView newOrder = new OrderView(getApplicationContext());
+        TableRow.LayoutParams params = new TableRow.LayoutParams();
+        params.weight = 1;
+        newOrder.setLayoutParams(params);
+        newRow.addView(newOrder);
     }
 
     private void retrieveAlerts(String stationIDin)
@@ -791,8 +812,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                         alertDataText.setText(outUID);
 
                         currentUID = outUID.toString();
-                        currentStationID = nameEditText.getText().toString();
-                        retrieveAlerts(currentStationID);
+                        //retrieveAlerts(currentStationID);
+                        createOrder(outUID.toString());
                         //TODO: fix this
                     }
                 });
