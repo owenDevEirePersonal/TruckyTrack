@@ -43,44 +43,6 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <TableRow
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                tools:layout_editor_absoluteX="8dp"
-                tools:layout_editor_absoluteY="8dp">
-
-                <view
-                    android:id="@+id/view"
-                    class="com.deveire.dev.truckytrack.OrderView"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="8dp"
-                    android:layout_marginRight="8dp"
-                    android:layout_weight="1"
-                    map:layout_constraintLeft_toLeftOf="parent"
-                    map:layout_constraintRight_toRightOf="parent"
-                    tools:layout_editor_absoluteY="0dp"/>
-            </TableRow>
-
-            <TableRow
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                tools:layout_editor_absoluteX="8dp"
-                tools:layout_editor_absoluteY="8dp">
-
-                <view
-                    android:id="@+id/view"
-                    class="com.deveire.dev.truckytrack.OrderView"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginLeft="8dp"
-                    android:layout_marginRight="8dp"
-                    android:layout_weight="1"
-                    map:layout_constraintLeft_toLeftOf="parent"
-                    map:layout_constraintRight_toRightOf="parent"
-                    tools:layout_editor_absoluteY="0dp"/>
-            </TableRow>
-
         </TableLayout>
     </ScrollView>
 

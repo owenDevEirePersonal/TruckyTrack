@@ -1,16 +1,10 @@
 package com.deveire.dev.truckytrack;
 
-import android.app.ActivityManager;
 import android.app.ProgressDialog;
-import android.bluetooth.BluetoothA2dp;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
-import android.bluetooth.BluetoothHeadset;
 import android.bluetooth.BluetoothManager;
-import android.bluetooth.BluetoothProfile;
-import android.bluetooth.BluetoothSocket;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -18,29 +12,24 @@ import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.BitmapFactory;
 import android.location.Geocoder;
 import android.location.Location;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
 import android.os.ResultReceiver;
 import android.provider.Settings;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.UtteranceProgressListener;
-import android.speech.tts.Voice;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
-import android.support.v4.app.NotificationCompatSideChannelService;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TableLayout;
 import android.widget.TableRow;
@@ -71,17 +60,13 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.UUID;
 
 public class DriverActivity extends FragmentActivity implements GoogleApiClient.OnConnectionFailedListener, GoogleApiClient.ConnectionCallbacks, LocationListener, DownloadCallback<String>
 {
@@ -105,6 +90,14 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private TextToSpeech toSpeech;
     private String speechInText;
     private HashMap<String, String> endOfSpeakIndentifier;
+
+
+    private int savedTotal;
+    private ArrayList<String> savedNames;
+    private ArrayList<String> savedDrinks;
+    private ArrayList<String> savedIDs;
+    private ArrayList<Integer> savedDrinksCount;
+    private float savedBalance;
 
 
     //[BLE Variables]
@@ -150,6 +143,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private boolean hasSufferedAtLeastOneFailureToReadUID;
 
     private boolean stopAllScans;
+
+    private Timer resumeLoadSavedDataConnectionDelayer;
 
     //[/Tile Reader Variables]
 
@@ -229,6 +224,19 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             @Override
             public void onClick(View v)
             {
+                //if scanner is connected, disconnect it
+                if(deviceManager.isConnection())
+                {
+                    Log.i("Scanner Buggery", "DriverActivity cutting connection prior to launching setupactivity.");
+                    stopAllScans = true;
+                    deviceManager.requestDisConnectDevice();
+                }
+
+                if(mScanner.isScanning())
+                {
+                    Log.i("Scanner Buggery", "DriverActivity cutting scanner prior to launching setupactivity.");
+                    mScanner.stopScan();
+                }
                 Intent i = new Intent(getApplicationContext(), SetupPatronActivity.class);
                 startActivity(i);
             }
@@ -268,15 +276,32 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         userLocation.setLatitude(0);
         userLocation.setLongitude(0);
 
-        savedData = this.getApplicationContext().getSharedPreferences("TruckyTrack SavedData", Context.MODE_PRIVATE);
-        itemName = savedData.getString("itemName", "Unknown");
-        itemID = savedData.getInt("itemID", 0);
+        itemID =  0;
+
+        savedTotal = 0;
+        savedNames = new ArrayList<String>();
+        savedDrinks = new ArrayList<String>();
+        savedIDs = new ArrayList<String>();
+        savedDrinksCount = new ArrayList<Integer>();
+        savedBalance = 0.00f;
+
+        savedData = this.getApplicationContext().getSharedPreferences("Drinks-On-Me SavedData", Context.MODE_PRIVATE);
+        savedTotal = savedData.getInt("savedTotal", 0);
+        for(int i = 0; i < savedTotal; i++)
+        {
+            savedNames.add(savedData.getString("patronName" + i, "Error"));
+            savedDrinks.add(savedData.getString("patronDrinks" + i, "Error"));
+            savedIDs.add(savedData.getString("patronIDs" + i, "Error"));
+            savedDrinksCount.add(savedData.getInt("patronDrinksCount" + i, 0));
+        }
+        savedBalance = savedData.getFloat("savedBalance", 0.00f);
+
 
 
         pingingServer = false;
 
         //aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), "https://192.168.1.188:8080/smrttrackerserver-1.0.0-SNAPSHOT/hello?isDoomed=yes");
-        serverURL = serverIPAddress + "?request=storelocation" + Settings.Secure.ANDROID_ID.toString() + "&name=" + itemName + "&lat=" + 0000 + "&lon=" + 0000;
+        serverURL = serverIPAddress + "?request=storelocation" + Settings.Secure.ANDROID_ID.toString() + "&name=" + "&lat=" + 0000 + "&lon=" + 0000;
 
 
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -410,7 +435,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         //setupHeadset();
 
 
-
+        Log.i("Scanner Buggery", "DriverActivity OnCreate.");
         setupTileScanner();
 
         restoreSavedValues(savedInstanceState);
@@ -423,12 +448,45 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         super.onResume();
         hasState = true;
 
+
         final IntentFilter intentFilter = new IntentFilter();
 
+        Log.i("Scanner Buggery", "DriverActivity onResume resuming connection to scanner.");
         uidIsFound = false;
         hasSufferedAtLeastOneFailureToReadUID = true;
         tileReaderTimer = new Timer();
         connectToTileScanner();
+
+
+
+        resumeLoadSavedDataConnectionDelayer = new Timer();
+        resumeLoadSavedDataConnectionDelayer.schedule(new TimerTask()
+        {
+            @Override
+            public void run()
+            {
+                savedTotal = savedData.getInt("savedTotal", 0);
+                Log.i("Setup Patron", "Loading savedTotal: " + savedTotal);
+                savedNames = new ArrayList<String>();
+                savedDrinks = new ArrayList<String>();
+                savedIDs = new ArrayList<String>();
+                savedDrinksCount = new ArrayList<Integer>();
+
+                for(int i = 0; i < savedTotal; i++)
+                {
+                    savedNames.add(savedData.getString("patronName" + i, "Error"));
+                    Log.i("Setup Patron", "Loading patronName" + i + ": " + savedNames.get(i));
+                    savedDrinks.add(savedData.getString("patronDrinks" + i, "Error"));
+                    Log.i("Setup Patron", "Loading patronDrinks" + i + ": " + savedDrinks.get(i));
+                    savedIDs.add(savedData.getString("patronIDs" + i, "Error"));
+                    Log.i("Setup Patron", "Loading patronIDs" + i + ": " + savedIDs.get(i));
+                    savedDrinksCount.add(savedData.getInt("patronDrinksCount" + i, 0));
+                    Log.i("Setup Patron", "Loading patronDrinksCount" + i + ": " + savedDrinksCount.get(i));
+                }
+                savedBalance = savedData.getFloat("savedBalance", 0.00f);
+                Log.i("Setup Patron", "Loading savedBalance: " + savedBalance);
+            }
+        }, 1000);
 
         //barReaderTimer = new Timer();
 
@@ -446,6 +504,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     @Override
     protected void onPause()
     {
+        Log.i("Pause", "onpause called");
         hasState = false;
         if(aNetworkFragment != null)
         {
@@ -455,17 +514,35 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         tileReaderTimer.cancel();
         tileReaderTimer.purge();
 
+        resumeLoadSavedDataConnectionDelayer.cancel();
+        resumeLoadSavedDataConnectionDelayer.purge();
+
         //if scanner is connected, disconnect it
         if(deviceManager.isConnection())
         {
+            Log.i("Scanner Buggery", "Driver OnPause is connected now disconnecting");
             stopAllScans = true;
             deviceManager.requestDisConnectDevice();
         }
 
         if(mScanner.isScanning())
         {
+            Log.i("Scanner Buggery", "Driver OnPause is scanning now stopping scanning");
             mScanner.stopScan();
         }
+
+        SharedPreferences.Editor edit = savedData.edit();
+        edit.putInt("savedTotal", savedTotal);
+        for(int i = 0; i < savedTotal; i++)
+        {
+            edit.putString("patronName" + i, savedNames.get(i));
+            edit.putString("patronDrinks" + i, savedDrinks.get(i));
+            edit.putString("patronIDs" + i, savedIDs.get(i));
+            edit.putInt("patronDrinksCount" + i, savedDrinksCount.get(i));
+        }
+        edit.putFloat("savedBalanced", savedBalance);
+        edit.commit();
+
 
         //headsetTimer.cancel();
         //headsetTimer.purge();
@@ -499,12 +576,34 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     {
         hasState = false;
 
+        //if scanner is connected, disconnect it
+        /*if(deviceManager.isConnection())
+        {
+            Log.i("Scanner Buggery", "Driver OnStop is connected now disconnecting");
+            stopAllScans = true;
+            deviceManager.requestDisConnectDevice();
+        }
+
+        if(mScanner.isScanning())
+        {
+            Log.i("Scanner Buggery", "Driver OnStop is scanning now stopping scanning");
+            mScanner.stopScan();
+        }*/
+
         SharedPreferences.Editor edit = savedData.edit();
 
         //edit.putString("ScannerMacAddress", storedScannerAddress);
-
-
+        edit.putInt("savedTotal", savedTotal);
+        for(int i = 0; i < savedTotal; i++)
+        {
+            edit.putString("patronName" + i, savedNames.get(i));
+            edit.putString("patronDrinks" + i, savedDrinks.get(i));
+            edit.putString("patronIDs" + i, savedIDs.get(i));
+            edit.putInt("patronDrinksCount" + i, savedDrinksCount.get(i));
+        }
+        edit.putFloat("savedBalanced", savedBalance);
         edit.commit();
+
 
 
 
@@ -519,36 +618,43 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         super.onStop();
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        // Check which request we're responding to
-        Log.i("PairingResult", "Call received to onActivity Result with reqyestCode: " + requestCode);
-        if (requestCode == PAIR_READER_REQUESTCODE) {
-            Log.i("PairingResult", "Received Pairing requestCode");
-            // Make sure the request was successful
-            if (resultCode == RESULT_OK) {
-                Log.i("PairingResult", "Recieved Result Ok");
-                storedScannerAddress = data.getStringExtra("BTMacAddress");
-                SharedPreferences.Editor edit = savedData.edit();
-                edit.putString("ScannerMacAddress", storedScannerAddress);
-                edit.commit();
-                Log.i("Pairing Result", "Recieved scannerMacAddress of : " + storedScannerAddress);
-
-
-            }
-        }
-    }
 
     private void createOrder(String inUID)
     {
+        Log.i("Setup Order", "UID recieved: " + currentUID);
         TableRow newRow = new TableRow(getApplicationContext());
         ordersTable.addView(newRow);
         OrderView newOrder = new OrderView(getApplicationContext());
+        newOrder = setOrderData(newOrder, currentUID);
         TableRow.LayoutParams params = new TableRow.LayoutParams();
         params.weight = 1;
         newOrder.setLayoutParams(params);
         newRow.addView(newOrder);
     }
+
+    private OrderView setOrderData(OrderView anOrder, String inUID)
+    {
+        Log.i("Setup Order", "Setting Order Data: " + currentUID);
+        int i = 0;
+        boolean matchFound = false;
+        for(String aUID: savedIDs)
+        {
+            if(aUID.matches(inUID))
+            {
+                anOrder.setOrder(savedNames.get(i), savedDrinks.get(i), savedDrinksCount.get(i));
+                matchFound = true;
+            }
+            i++;
+        }
+        //If UID matches no registered user.
+        if(!matchFound)
+        {
+            anOrder.setOrder("Unregistered", "Hasn't Paid", 0);
+        }
+        return anOrder;
+    }
+
+
 
     private void retrieveAlerts(String stationIDin)
     {
@@ -705,7 +811,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         uidIsFound = false;
         hasSufferedAtLeastOneFailureToReadUID = false;
 
-        connectToTileScanner();
+        //connect called from OnResume which triggers after on create anyway
+        //connectToTileScanner();
     }
 
     //Scanner CallBack
@@ -760,6 +867,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             super.onReceiveDisConnectDevice(blnIsDisConnectDevice);
             Log.i("TileScanner", "Activity Unlink");
             Log.i("TileScanner", "Unlink!");
+            Log.i("TileScanner", "Disconnect Complete");
             handler.sendEmptyMessage(5);
         }
 
@@ -1312,7 +1420,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             else if (msg.what == 5) {
                 disconnectCnt++;
                 //searchButton.performClick();
-                if(stopAllScans)
+                if(!stopAllScans)
                 {
                     connectToTileScanner();
                 }
@@ -1347,7 +1455,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         }
         catch (IllegalStateException e)
         {
-            Log.e("TileScanner", "Timer has been canceled, aborting the call for uid loop");
+            Log.e("TileScanner", "Timer has been canceled, aborting the call for uid loop due to illegal state exception: " + e);
         }
     }
 

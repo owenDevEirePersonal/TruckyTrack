@@ -20,13 +20,13 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toRightOf="@+id/patronPhoto"
         app:layout_constraintTop_toTopOf="@+id/patronPhoto"
-        app:layout_constraintVertical_bias="0.0"/>
+        app:layout_constraintVertical_bias="0.0"
+        android:layout_marginStart="8dp"/>
 
     <TextView
         android:id="@+id/drinkCount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="0dp"
         android:layout_marginLeft="8dp"
         android:layout_marginRight="8dp"
         android:layout_marginTop="8dp"
@@ -36,21 +36,36 @@
         app:layout_constraintBottom_toBottomOf="@+id/drinkCounterImage"
         app:layout_constraintLeft_toLeftOf="@+id/drinkCounterImage"
         app:layout_constraintRight_toRightOf="@+id/drinkCounterImage"
-        app:layout_constraintTop_toTopOf="@+id/drinkCounterImage"/>
+        app:layout_constraintTop_toTopOf="@+id/drinkCounterImage"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"/>
 
     <TextView
         android:id="@+id/patronPreferedDrink"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:layout_marginLeft="32dp"
-        android:layout_marginTop="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="0dp"
         android:text="Drink"
         android:textColor="@color/cast_expanded_controller_background_color"
-        app:layout_constraintBottom_toBottomOf="@+id/patronPhoto"
         app:layout_constraintLeft_toRightOf="@+id/patronName"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.521"/>
+        app:layout_constraintTop_toTopOf="@+id/patronName"
+        android:layout_marginStart="32dp"
+        app:layout_constraintRight_toLeftOf="@+id/dismissButton"
+        android:layout_marginRight="8dp"
+        app:layout_constraintHorizontal_bias="1.0"/>
+
+    <TextView
+        android:id="@+id/serialCodeText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="8dp"
+        android:layout_marginStart="32dp"
+        android:layout_marginTop="8dp"
+        android:text="----"
+        android:textColor="@color/cast_expanded_controller_background_color"
+        app:layout_constraintRight_toRightOf="@+id/dismissButton"
+        app:layout_constraintTop_toBottomOf="@+id/dismissButton"/>
 
     <ImageView
         android:id="@+id/patronPhoto"
@@ -64,7 +79,8 @@
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0"
-        app:srcCompat="@mipmap/ad_rabbit"/>
+        app:srcCompat="@mipmap/ad_rabbit"
+        android:layout_marginStart="8dp"/>
 
     <ImageView
         android:id="@+id/drinkCounterImage"
@@ -76,26 +92,44 @@
         android:translationZ="-1dp"
         app:layout_constraintLeft_toRightOf="@+id/patronPhoto"
         app:layout_constraintTop_toBottomOf="@+id/patronName"
-        app:srcCompat="@drawable/drinkcountericon"/>
+        app:srcCompat="@drawable/drinkcountericon"
+        android:layout_marginStart="8dp"/>
 
     <ImageButton
         android:id="@+id/dismissButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="8dp"
         android:layout_marginRight="8dp"
         android:layout_marginTop="8dp"
         android:backgroundTint="@android:color/transparent"
         android:src="@drawable/ic_close_light"
-        app:layout_constraintHorizontal_bias="1.0"
-        app:layout_constraintLeft_toRightOf="@+id/patronPreferedDrink"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:srcCompat="@drawable/ic_close_light"/>
+        app:srcCompat="@drawable/ic_close_light"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"/>
+
+    <ImageButton
+        android:id="@+id/addAnotherButton"
+        android:layout_width="41dp"
+        android:layout_height="0dp"
+        android:layout_marginBottom="0dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="0dp"
+        android:backgroundTint="@android:color/transparent"
+        android:src="@android:drawable/ic_input_add"
+        app:layout_constraintBottom_toBottomOf="@+id/drinkCounterImage"
+        app:layout_constraintLeft_toRightOf="@+id/drinkCounterImage"
+        app:layout_constraintTop_toTopOf="@+id/drinkCounterImage"
+        app:layout_constraintVertical_bias="0.0"
+        app:srcCompat="@android:drawable/ic_input_add"
+        />
 
     <ImageView
         android:id="@+id/bottomBar"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="1dp"
         android:layout_marginBottom="8dp"
         android:layout_marginLeft="8dp"
@@ -107,6 +141,9 @@
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/drinkCounterImage"
         app:layout_constraintVertical_bias="0.0"
-        app:srcCompat="@color/colorPrimary"/>
+        app:srcCompat="@color/colorPrimary"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"/>
+
 </android.support.constraint.ConstraintLayout>
 
