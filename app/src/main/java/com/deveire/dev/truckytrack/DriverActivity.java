@@ -295,6 +295,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             savedDrinksCount.add(savedData.getInt("patronDrinksCount" + i, 0));
         }
         savedBalance = savedData.getFloat("savedBalance", 0.00f);
+        balanceText.setText("Balance: " + savedBalance);
 
 
 
@@ -484,6 +485,16 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                     Log.i("Setup Patron", "Loading patronDrinksCount" + i + ": " + savedDrinksCount.get(i));
                 }
                 savedBalance = savedData.getFloat("savedBalance", 0.00f);
+                runOnUiThread(new Runnable()
+                {
+                    @Override
+                    public void run()
+                    {
+                        balanceText.setText("Balance: " + savedBalance);
+                    }
+                });
+
+
                 Log.i("Setup Patron", "Loading savedBalance: " + savedBalance);
             }
         }, 1000);
@@ -626,6 +637,16 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         ordersTable.addView(newRow);
         OrderView newOrder = new OrderView(getApplicationContext());
         newOrder = setOrderData(newOrder, currentUID);
+        newOrder.setDismissObserver(new OrderDismissObserver()
+        {
+            @Override
+            public void callBack(int inNumberOfDrinksOrdered)
+            {
+                //Called be dismissButton.onClickListener
+                addBalance(-5.00f * inNumberOfDrinksOrdered);
+                //onclicklistener removes itself from the view(see OrderView.dismissButton.onClickListener)
+            }
+        });
         TableRow.LayoutParams params = new TableRow.LayoutParams();
         params.weight = 1;
         newOrder.setLayoutParams(params);
@@ -641,7 +662,14 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         {
             if(aUID.matches(inUID))
             {
-                anOrder.setOrder(savedNames.get(i), savedDrinks.get(i), savedDrinksCount.get(i));
+                if(savedBalance >= 5f)
+                {
+                    anOrder.setOrder(savedNames.get(i), savedDrinks.get(i), savedDrinksCount.get(i));
+                }
+                else
+                {
+                    anOrder.setOrder(savedNames.get(i), "Out of Money", savedDrinksCount.get(i));
+                }
                 matchFound = true;
             }
             i++;
@@ -654,6 +682,12 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         return anOrder;
     }
 
+    //called by OrderView's dismissButton onClickListener
+    public void addBalance(float cashToAdd)
+    {
+        savedBalance += cashToAdd;
+        balanceText.setText("Balance: " + savedBalance);
+    }
 
 
     private void retrieveAlerts(String stationIDin)

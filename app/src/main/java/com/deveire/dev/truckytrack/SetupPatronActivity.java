@@ -202,7 +202,7 @@ public class SetupPatronActivity extends AppCompatActivity
             Log.i("Setup Patron", "Saving savedDrinksCount" + i + ": " + savedDrinksCount.get(i));
         }
         Log.i("Setup Patron", "Saving savedBalance: " + savedBalance);
-        edit.putFloat("savedBalanced", savedBalance);
+        edit.putFloat("savedBalance", savedBalance);
         edit.commit();
 
         Log.i("Scanner Buggery", "SetupPatron OnStop");
@@ -229,6 +229,7 @@ public class SetupPatronActivity extends AppCompatActivity
                     savedDrinksCount.set(i, 0);
 
                     matchFound = true;
+                    break;
                 }
                 i++;
             }
@@ -241,7 +242,7 @@ public class SetupPatronActivity extends AppCompatActivity
                 savedDrinks.add(preferedDrinksEditText.getText().toString());
                 savedIDs.add(scannedCardIDText.getText().toString());
                 savedDrinksCount.add(0);
-                savedBalance += 30;
+                savedBalance += 30.0f;
             }
         }
 

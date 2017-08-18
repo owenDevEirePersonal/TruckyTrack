@@ -1,6 +1,8 @@
 package com.deveire.dev.truckytrack;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.support.constraint.ConstraintLayout;
 import android.text.util.Linkify;
 import android.util.AttributeSet;
@@ -31,6 +33,7 @@ public class OrderView extends ConstraintLayout
 
     private int numberOfDrinksOrdered;
     private String preferedDrinkType;
+    private OrderDismissObserver dismissObserver;
 
     public OrderView(Context context)
     {
@@ -58,7 +61,7 @@ public class OrderView extends ConstraintLayout
         serialCodeText = (TextView) rootView.findViewById(R.id.serialCodeText);
         int a1 = (int)((Math.random() * 26) + 'a');
         char a = (char)a1;
-        int b1 = (int)((Math.random() * 26) + 'a');
+        int b1 = (int)((Math.random() * 26 ) + 'a');
         char b = (char)b1;
         int c = (int) (Math.random() * 10);
         int d = (int) (Math.random() * 10);
@@ -68,11 +71,16 @@ public class OrderView extends ConstraintLayout
         numberOfDrinksOrdered = 1;
         preferedDrinkType = "";
 
+
         dismissButton.setOnClickListener(new View.OnClickListener()
         {
             @Override
             public void onClick(View v)
             {
+                if(dismissObserver != null)
+                {
+                    dismissObserver.callBack(numberOfDrinksOrdered);
+                }
                 ((ViewManager)rootView.getParent().getParent()).removeView((View) rootView.getParent());
             }
         });
@@ -95,5 +103,10 @@ public class OrderView extends ConstraintLayout
         preferedDrinkType = inPreferedDrinkName;
         patronPreferedDrink.setText(numberOfDrinksOrdered + " " + preferedDrinkType);
         drinkCount.setText("" + inDrinkCount);
+    }
+
+    void setDismissObserver(OrderDismissObserver aObserver)
+    {
+        dismissObserver = aObserver;
     }
 }
