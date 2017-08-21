@@ -40,14 +40,8 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".ManagerActivity"
-            android:label="@string/title_activity_manager">
-        </activity>
-        <activity
             android:name=".DriverActivity"
             android:label="@string/title_activity_driver">
-        </activity>
-        <activity android:name=".PairingActivity">
         </activity>
         <activity android:name=".SetupPatronActivity">
         </activity>

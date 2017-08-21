@@ -70,7 +70,7 @@ import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class DriverActivity extends FragmentActivity implements GoogleApiClient.OnConnectionFailedListener, GoogleApiClient.ConnectionCallbacks, LocationListener, DownloadCallback<String>
+public class DriverActivity extends FragmentActivity implements DownloadCallback<String>
 {
 
     private GoogleMap mMap;
@@ -192,16 +192,6 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     //[/Scanner Variables]
 
     //[Network and periodic location update, Variables]
-    private GoogleApiClient mGoogleApiClient;
-    private Location locationReceivedFromLocationUpdates;
-    private Location userLocation;
-    private DriverActivity.AddressResultReceiver geoCoderServiceResultReciever;
-    private int locationScanInterval;
-
-    LocationRequest request;
-    private final int SETTINGS_REQUEST_ID = 8888;
-    private final String SAVED_LOCATION_KEY = "79";
-
     private boolean pingingServer;
     private final String serverIPAddress = "http://192.168.1.188:8080/InstructaConServlet/ICServlet";
     //private final String serverIPAddress = "http://api.eirpin.com/api/TTServlet";
@@ -254,10 +244,6 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
         hasState = true;
 
-        userLocation = new Location("Truck");
-        userLocation.setLatitude(0);
-        userLocation.setLongitude(0);
-
         itemID =  0;
 
         savedTotal = 0;
@@ -287,65 +273,6 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         //aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), "https://192.168.1.188:8080/smrttrackerserver-1.0.0-SNAPSHOT/hello?isDoomed=yes");
         serverURL = serverIPAddress + "?request=storelocation" + Settings.Secure.ANDROID_ID.toString() + "&name=" + "&lat=" + 0000 + "&lon=" + 0000;
 
-
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .addApi(LocationServices.API)
-                .build();
-
-        mGoogleApiClient.connect();
-
-        locationScanInterval = 60;//in seconds
-
-
-        request = new LocationRequest();
-        request.setInterval(locationScanInterval * 1000);//in mileseconds
-        request.setFastestInterval(5000);//caps how fast the locations are recieved, as other apps could be triggering updates faster than our app.
-        request.setPriority(LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY); //accurate to 100 meters.
-
-        LocationSettingsRequest.Builder requestBuilder = new LocationSettingsRequest.Builder().addLocationRequest(request);
-
-        PendingResult<LocationSettingsResult> result =
-                LocationServices.SettingsApi.checkLocationSettings(mGoogleApiClient,
-                        requestBuilder.build());
-
-        result.setResultCallback(new ResultCallback<LocationSettingsResult>()
-        {
-            @Override
-            public void onResult(@NonNull LocationSettingsResult aResult)
-            {
-                final Status status = aResult.getStatus();
-                final LocationSettingsStates states = aResult.getLocationSettingsStates();
-                switch (status.getStatusCode())
-                {
-                    case LocationSettingsStatusCodes.SUCCESS:
-                        // All location settings are satisfied. The client can
-                        // initialize location requests here.
-
-                        break;
-                    case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
-                        // Location settings are not satisfied, but this can be fixed
-                        // by showing the user a dialog.
-                        try
-                        {
-                            // Show the dialog by calling startResolutionForResult(),
-                            // and check the result in onActivityResult().
-                            status.startResolutionForResult(DriverActivity.this, SETTINGS_REQUEST_ID);
-                        } catch (IntentSender.SendIntentException e)
-                        {
-                            // Ignore the error.
-                        }
-                        break;
-                    case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
-                        // Location settings are not satisfied. However, we have no way
-                        // to fix the settings so we won't show the dialog.
-                        break;
-                }
-            }
-        });
-
-        geoCoderServiceResultReciever = new AddressResultReceiver(new Handler());
 
 
         pingingServerFor_alertData = false;
@@ -773,21 +700,6 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         }
     }
 
-    private void scanKeg(String kegIDin)
-    {
-        if(!kegIDin.matches(""))
-        {
-            kegIDin = kegIDin.replace(' ', '_');
-            serverURL = serverIPAddress + "?request=storekeg" + "&id=" + itemID + "&kegid=" + kegIDin + "&lat=" + locationReceivedFromLocationUpdates.getLatitude() + "&lon=" + locationReceivedFromLocationUpdates.getLongitude();
-            //lat and long are doubles, will cause issue? nope
-            Log.i("Network Update", "Attempting to start download from scanKeg. " + serverURL);
-            aNetworkFragment = NetworkFragment.getInstance(getSupportFragmentManager(), serverURL);
-        }
-        else
-        {
-            Log.e("kegScan Error", "invalid uuid entered.");
-        }
-    }
 
     /*public boolean onKeyUp(int keyCode, KeyEvent event)
     {
@@ -1585,65 +1497,14 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
 
 //**********[Location Update and server pinging Code]
-    @Override
-    public void onConnectionFailed(ConnectionResult result) {
-        // An unresolvable error has occurred and a connection to Google APIs
-        // could not be established. Display an error message, or handle
-        // the failure silently
-
-        // ...
-    }
-
-    @Override
-    public void onConnected(@Nullable Bundle bundle)
-    {
-        if(ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED)
-        {
-            locationReceivedFromLocationUpdates = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, request, this);
-            if(locationReceivedFromLocationUpdates != null)
-            {
-                //YES, lat and long are multi digit.
-                if(Geocoder.isPresent())
-                {
-                    startIntentService();
-                }
-                else
-                {
-                    Log.e("ERROR:", "Geocoder is not avaiable");
-                }
-            }
-            else
-            {
-
-            }
-
-
-        }
 
 
 
-    }
-
-    @Override
-    public void onConnectionSuspended(int i)
-    {
-        //put other stuff here
-    }
-
-    //update app based on the new location data, and then begin pinging servlet with the new location
-    @Override
-    public void onLocationChanged(Location location)
-    {
-
-
-    }
 
 
     @Override
     public void onSaveInstanceState(Bundle savedState)
     {
-        savedState.putParcelable(SAVED_LOCATION_KEY, locationReceivedFromLocationUpdates);
         super.onSaveInstanceState(savedState);
     }
 
@@ -1652,23 +1513,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         if (savedInstanceState != null)
         {
 
-            // Update the value of mCurrentLocation from the Bundle and update the
-            // UI to show the correct latitude and longitude.
-            if (savedInstanceState.keySet().contains(SAVED_LOCATION_KEY))
-            {
-                // Since LOCATION_KEY was found in the Bundle, we can be sure that
-                // mCurrentLocationis not null.
-                locationReceivedFromLocationUpdates = savedInstanceState.getParcelable(SAVED_LOCATION_KEY);
-            }
 
         }
-    }
-
-    protected void startIntentService() {
-        Intent intent = new Intent(this, geoCoderIntent.class);
-        intent.putExtra(Constants.RECEIVER, geoCoderServiceResultReciever);
-        intent.putExtra(Constants.LOCATION_DATA_EXTRA, locationReceivedFromLocationUpdates);
-        startService(intent);
     }
 
     //Update activity based on the results sent back by the servlet.
