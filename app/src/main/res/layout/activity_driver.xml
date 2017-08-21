@@ -4,21 +4,23 @@
     xmlns:map="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@drawable/party_app_final_background">
 
     <TextView
         android:id="@+id/mapText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginLeft="163dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginStart="8dp"
         android:layout_marginTop="16dp"
         android:text="TextView"
-        map:layout_constraintTop_toTopOf="parent"
-        android:layout_marginLeft="163dp"
+        android:textColor="@color/cast_expanded_controller_text_color"
+        map:layout_constraintHorizontal_bias="0.0"
         map:layout_constraintLeft_toLeftOf="parent"
-        android:layout_marginStart="8dp"
-        android:layout_marginRight="8dp"
         map:layout_constraintRight_toRightOf="parent"
-        map:layout_constraintHorizontal_bias="0.0"/>
+        map:layout_constraintTop_toTopOf="parent"/>
 
     <ScrollView
         android:id="@+id/scrollView"
@@ -54,6 +56,7 @@
         android:layout_marginRight="8dp"
         android:layout_marginTop="16dp"
         android:text="Balance: 0€"
+        android:textColor="@color/cast_expanded_controller_text_color"
         map:layout_constraintLeft_toLeftOf="parent"
         map:layout_constraintRight_toRightOf="parent"
         map:layout_constraintTop_toTopOf="parent"/>
@@ -65,7 +68,9 @@
         android:layout_marginLeft="8dp"
         android:layout_marginRight="8dp"
         android:layout_marginTop="4dp"
+        android:backgroundTint="@android:color/transparent"
         android:text="Setup"
+        android:textColor="@color/cast_expanded_controller_text_color"
         map:layout_constraintHorizontal_bias="1.0"
         map:layout_constraintLeft_toRightOf="@+id/balanceText"
         map:layout_constraintRight_toRightOf="parent"

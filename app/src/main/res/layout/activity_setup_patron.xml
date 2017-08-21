@@ -5,82 +5,92 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/party_app_final_background"
     tools:context="com.deveire.dev.truckytrack.SetupPatronActivity">
 
     <Button
         android:id="@+id/okButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Add Patron"
-        app:layout_constraintBottom_toBottomOf="parent"
         android:layout_marginBottom="8dp"
         android:layout_marginLeft="8dp"
+        android:background="@android:color/transparent"
+        android:text="Add Patron"
+        android:textColor="@color/cast_expanded_controller_text_color"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"/>
 
     <Button
         android:id="@+id/cancelButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Cancel"
+        android:layout_marginBottom="8dp"
         android:layout_marginRight="8dp"
-        app:layout_constraintRight_toRightOf="parent"
+        android:background="@android:color/transparent"
+        android:text="Cancel"
+        android:textColor="@color/cast_expanded_controller_text_color"
         app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_marginBottom="8dp"/>
+        app:layout_constraintRight_toRightOf="parent"/>
 
     <EditText
         android:id="@+id/nameEditText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginRight="8dp"
+        android:layout_marginTop="8dp"
         android:ems="10"
         android:inputType="textPersonName"
         android:text="Name"
-        android:layout_marginTop="8dp"
-        app:layout_constraintTop_toTopOf="parent"
-        android:layout_marginRight="8dp"
-        app:layout_constraintRight_toRightOf="parent"/>
+        android:textColor="@color/cast_expanded_controller_text_color"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"/>
 
     <EditText
         android:id="@+id/drinkEditText"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginLeft="0dp"
         android:layout_marginRight="8dp"
+        android:layout_marginTop="16dp"
         android:ems="10"
         android:inputType="textPersonName"
         android:text="Name"
+        android:textColor="@color/cast_expanded_controller_text_color"
+        app:layout_constraintLeft_toLeftOf="@+id/nameEditText"
         app:layout_constraintRight_toRightOf="parent"
-        android:layout_marginTop="16dp"
-        app:layout_constraintTop_toBottomOf="@+id/nameEditText"
-        android:layout_marginLeft="0dp"
-        app:layout_constraintLeft_toLeftOf="@+id/nameEditText"/>
+        app:layout_constraintTop_toBottomOf="@+id/nameEditText"/>
 
     <TextView
         android:id="@+id/textView2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Name"
         android:layout_marginLeft="16dp"
+        android:layout_marginTop="16dp"
+        android:text="Name"
+        android:textColor="@color/cast_expanded_controller_text_color"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/nameEditText"
-        android:layout_marginTop="16dp"/>
+        app:layout_constraintTop_toTopOf="@+id/nameEditText"/>
 
     <TextView
         android:id="@+id/drinkTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="16dp"
+        android:layout_marginTop="16dp"
         android:text="Prefered Drink"
+        android:textColor="@color/cast_expanded_controller_text_color"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/drinkEditText"
-        android:layout_marginTop="16dp"/>
+        app:layout_constraintTop_toTopOf="@+id/drinkEditText"/>
 
     <TextView
         android:id="@+id/idTextView"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="16dp"
-        android:text="Card ID"
-        app:layout_constraintLeft_toLeftOf="parent"
         android:layout_marginTop="32dp"
+        android:text="Card ID"
+        android:textColor="@color/cast_expanded_controller_text_color"
+        app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/drinkEditText"/>
 
     <TextView
@@ -90,6 +100,7 @@
         android:layout_marginLeft="0dp"
         android:layout_marginTop="0dp"
         android:text="-Please Scan Card-"
+        android:textColor="@color/cast_expanded_controller_text_color"
         app:layout_constraintLeft_toLeftOf="@+id/drinkEditText"
         app:layout_constraintTop_toTopOf="@+id/idTextView"/>
 
