@@ -29,6 +29,8 @@ import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewManager;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TableLayout;
@@ -99,6 +101,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private ArrayList<Integer> savedDrinksCount;
     private float savedBalance;
 
+    private ArrayList<String> currentOrderUIDs;
+    private ArrayList<OrderView> currentOrderViews;
 
     //[BLE Variables]
     private String storedScannerAddress;
@@ -297,7 +301,8 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
         savedBalance = savedData.getFloat("savedBalance", 0.00f);
         balanceText.setText("Balance: " + savedBalance);
 
-
+        currentOrderViews = new ArrayList<OrderView>();
+        currentOrderUIDs = new ArrayList<String>();
 
         pingingServer = false;
 
@@ -551,7 +556,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             edit.putString("patronIDs" + i, savedIDs.get(i));
             edit.putInt("patronDrinksCount" + i, savedDrinksCount.get(i));
         }
-        edit.putFloat("savedBalanced", savedBalance);
+        edit.putFloat("savedBalance", savedBalance);
         edit.commit();
 
 
@@ -612,7 +617,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             edit.putString("patronIDs" + i, savedIDs.get(i));
             edit.putInt("patronDrinksCount" + i, savedDrinksCount.get(i));
         }
-        edit.putFloat("savedBalanced", savedBalance);
+        edit.putFloat("savedBalance", savedBalance);
         edit.commit();
 
 
@@ -633,24 +638,51 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private void createOrder(String inUID)
     {
         Log.i("Setup Order", "UID recieved: " + currentUID);
-        TableRow newRow = new TableRow(getApplicationContext());
-        ordersTable.addView(newRow);
-        OrderView newOrder = new OrderView(getApplicationContext());
-        newOrder = setOrderData(newOrder, currentUID);
-        newOrder.setDismissObserver(new OrderDismissObserver()
+        //if an Order for this UID exists, delete it, if not, add a new order
+        if(!deleteExisitingOrder(currentUID))
         {
-            @Override
-            public void callBack(int inNumberOfDrinksOrdered)
+            TableRow newRow = new TableRow(getApplicationContext());
+            ordersTable.addView(newRow);
+            OrderView newOrder = new OrderView(getApplicationContext());
+            newOrder = setOrderData(newOrder, currentUID);
+            //when the barman hits the dismiss button, indicating he has served/ignored the order
+            newOrder.setDismissObserver(new OrderDismissObserver()
             {
-                //Called be dismissButton.onClickListener
-                addBalance(-5.00f * inNumberOfDrinksOrdered);
-                //onclicklistener removes itself from the view(see OrderView.dismissButton.onClickListener)
-            }
-        });
-        TableRow.LayoutParams params = new TableRow.LayoutParams();
-        params.weight = 1;
-        newOrder.setLayoutParams(params);
-        newRow.addView(newOrder);
+                @Override
+                public void callBack(int inNumberOfDrinksOrdered)
+                {
+                    //Called be OrderView.dismissButton.onClickListener
+                    if (inNumberOfDrinksOrdered * 5.00f <= savedBalance)
+                    {
+                        addBalance(-5.00f * inNumberOfDrinksOrdered);
+                        addToDrinksCount(currentUID, inNumberOfDrinksOrdered);
+                    }
+                    //onclicklistener removes itself from the view(see OrderView.dismissButton.onClickListener)
+                }
+            });
+            newOrder.setAddAnotherObserver(new OrderAddAnotherObserver()
+            {
+                @Override
+                public void callBack(int inNumberOfDrinksOrdered, OrderView callingOrder)
+                {
+                    //called by OrderView.addAnotherButton.onClickListner
+                    if (inNumberOfDrinksOrdered * 5.00f > savedBalance)
+                    {
+                        callingOrder.setPreferedDrinkText("Insufficent Funds");
+                    }
+                }
+            });
+
+
+
+            currentOrderUIDs.add(currentUID);
+            currentOrderViews.add(newOrder);
+
+            TableRow.LayoutParams params = new TableRow.LayoutParams();
+            params.weight = 1;
+            newOrder.setLayoutParams(params);
+            newRow.addView(newOrder);
+        }
     }
 
     private OrderView setOrderData(OrderView anOrder, String inUID)
@@ -687,6 +719,63 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     {
         savedBalance += cashToAdd;
         balanceText.setText("Balance: " + savedBalance);
+    }
+
+    private void addToDrinksCount(String inUID, int inDrinksOrdered)
+    {
+        int i = 0;
+        for (String aUID: savedIDs)
+        {
+            if(inUID.matches(aUID))
+            {
+                savedDrinksCount.set(i, savedDrinksCount.get(i) + inDrinksOrdered);
+                SharedPreferences.Editor edit = savedData.edit();
+                edit.putInt("patronDrinksCount" + i, savedDrinksCount.get(i));
+                edit.putFloat("savedBalance", savedBalance);
+                edit.commit();
+                break;
+            }
+            i++;
+        }
+    }
+
+    private boolean deleteExisitingOrder(String inUID)
+    {
+        int i = 0;
+        for (String aUID: currentOrderUIDs)
+        {
+            if(inUID.matches(aUID))
+            {
+                ((ViewManager)currentOrderViews.get(i).getParent()).removeView((View) currentOrderViews.get(i));
+                currentOrderViews.remove(i);
+                currentOrderUIDs.remove(i);
+                return true;
+            }
+            i++;
+        }
+        return false;
+    }
+
+
+    private void updateSavedDataForUID(String inUID)
+    {
+        int i = 0;
+        for (String aUID : savedIDs)
+        {
+            if (aUID.matches(inUID))
+            {
+                break;
+            }
+            i++;
+        }
+        SharedPreferences.Editor edit = savedData.edit();
+        edit.putInt("savedTotal", savedTotal);
+        edit.putString("patronName" + i, savedNames.get(i));
+        edit.putString("patronDrinks" + i, savedDrinks.get(i));
+        edit.putString("patronIDs" + i, savedIDs.get(i));
+        edit.putInt("patronDrinksCount" + i, savedDrinksCount.get(i));
+        edit.putFloat("savedBalance", savedBalance);
+        edit.commit();
     }
 
 
@@ -956,7 +1045,6 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                         currentUID = outUID.toString();
                         //retrieveAlerts(currentStationID);
                         createOrder(outUID.toString());
-                        //TODO: fix this
                     }
                 });
             }

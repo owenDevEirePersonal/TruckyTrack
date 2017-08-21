@@ -34,6 +34,7 @@ public class OrderView extends ConstraintLayout
     private int numberOfDrinksOrdered;
     private String preferedDrinkType;
     private OrderDismissObserver dismissObserver;
+    private OrderAddAnotherObserver addAnotherObserver;
 
     public OrderView(Context context)
     {
@@ -85,6 +86,8 @@ public class OrderView extends ConstraintLayout
             }
         });
 
+        //aOrderView passes this instance of OrderView to the Observer, allowing it to call OrderView methods on this instance from callback
+        final OrderView aOrderView = this;
         addAnotherButton.setOnClickListener(new OnClickListener()
         {
             @Override
@@ -92,6 +95,10 @@ public class OrderView extends ConstraintLayout
             {
                 numberOfDrinksOrdered++;
                 patronPreferedDrink.setText(numberOfDrinksOrdered + " " + preferedDrinkType);
+                if(addAnotherObserver != null)
+                {
+                    addAnotherObserver.callBack(numberOfDrinksOrdered, aOrderView);
+                }
             }
         });
     }
@@ -108,5 +115,12 @@ public class OrderView extends ConstraintLayout
     void setDismissObserver(OrderDismissObserver aObserver)
     {
         dismissObserver = aObserver;
+    }
+
+    void setAddAnotherObserver(OrderAddAnotherObserver aObserver) { addAnotherObserver = aObserver; }
+
+    public void setPreferedDrinkText(String inText)
+    {
+        patronPreferedDrink.setText(inText);
     }
 }
