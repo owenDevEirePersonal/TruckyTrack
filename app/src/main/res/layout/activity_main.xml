@@ -4,7 +4,8 @@
     xmlns:map="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@drawable/party_app_final_background">
 
 
     <Button
@@ -12,16 +13,18 @@
         android:layout_width="wrap_content"
         android:layout_height="0dp"
         android:layout_marginBottom="8dp"
+        android:layout_marginLeft="8dp"
         android:layout_marginRight="8dp"
         android:layout_marginTop="8dp"
-        android:text="Manager"
+        android:background="@android:color/transparent"
+        android:text="Patron"
+        android:textColor="@color/cast_expanded_controller_text_color"
         map:layout_constraintBottom_toBottomOf="parent"
+        map:layout_constraintHorizontal_bias="1.0"
+        map:layout_constraintLeft_toRightOf="@+id/driverButton"
         map:layout_constraintRight_toRightOf="parent"
         map:layout_constraintTop_toTopOf="parent"
-        map:layout_constraintVertical_bias="0.523"
-        map:layout_constraintLeft_toRightOf="@+id/driverButton"
-        android:layout_marginLeft="8dp"
-        map:layout_constraintHorizontal_bias="1.0"/>
+        map:layout_constraintVertical_bias="0.523"/>
 
     <Button
         android:id="@+id/driverButton"
@@ -30,7 +33,9 @@
         android:layout_marginBottom="8dp"
         android:layout_marginLeft="16dp"
         android:layout_marginTop="8dp"
-        android:text="Driver"
+        android:background="@android:color/transparent"
+        android:text="Bartender"
+        android:textColor="@color/cast_expanded_controller_text_color"
         map:layout_constraintBottom_toBottomOf="parent"
         map:layout_constraintLeft_toLeftOf="parent"
         map:layout_constraintTop_toTopOf="parent"

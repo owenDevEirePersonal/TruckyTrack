@@ -76,10 +76,10 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     private GoogleMap mMap;
 
     private TextView mapText;
-    private TextView balanceText;
+    //private TextView balanceText;
     private TableLayout ordersTable;
     private ImageView adImageView;
-    private Button setupButton;
+
 
     final static int PAIR_READER_REQUESTCODE = 9;
 
@@ -220,31 +220,9 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
 
 
         mapText = (TextView) findViewById(R.id.mapText);
-        balanceText = (TextView) findViewById(R.id.balanceText);
+        //balanceText = (TextView) findViewById(R.id.balanceText);
         ordersTable = (TableLayout) findViewById(R.id.ordersTable);
-        setupButton = (Button) findViewById(R.id.setupButton);
-        setupButton.setOnClickListener(new View.OnClickListener()
-        {
-            @Override
-            public void onClick(View v)
-            {
-                //if scanner is connected, disconnect it
-                if(deviceManager.isConnection())
-                {
-                    Log.i("Scanner Buggery", "DriverActivity cutting connection prior to launching setupactivity.");
-                    stopAllScans = true;
-                    deviceManager.requestDisConnectDevice();
-                }
 
-                if(mScanner.isScanning())
-                {
-                    Log.i("Scanner Buggery", "DriverActivity cutting scanner prior to launching setupactivity.");
-                    mScanner.stopScan();
-                }
-                Intent i = new Intent(getApplicationContext(), SetupPatronActivity.class);
-                startActivity(i);
-            }
-        });
 
 
         /*scanKegButton.setOnClickListener(new View.OnClickListener()
@@ -299,7 +277,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
             savedDrinksCount.add(savedData.getInt("patronDrinksCount" + i, 0));
         }
         savedBalance = savedData.getFloat("savedBalance", 0.00f);
-        balanceText.setText("Balance: " + savedBalance);
+        //balanceText.setText("Balance: " + savedBalance);
 
         currentOrderViews = new ArrayList<OrderView>();
         currentOrderUIDs = new ArrayList<String>();
@@ -495,7 +473,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
                     @Override
                     public void run()
                     {
-                        balanceText.setText("Balance: " + savedBalance);
+                        //balanceText.setText("Balance: " + savedBalance);
                     }
                 });
 
@@ -718,7 +696,7 @@ public class DriverActivity extends FragmentActivity implements GoogleApiClient.
     public void addBalance(float cashToAdd)
     {
         savedBalance += cashToAdd;
-        balanceText.setText("Balance: " + savedBalance);
+        //balanceText.setText("Balance: " + savedBalance);
     }
 
     private void addToDrinksCount(String inUID, int inDrinksOrdered)
