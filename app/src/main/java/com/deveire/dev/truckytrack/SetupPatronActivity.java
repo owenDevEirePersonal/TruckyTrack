@@ -41,15 +41,19 @@ public class SetupPatronActivity extends AppCompatActivity
     private ArrayList<String> savedDrinks;
     private ArrayList<String> savedIDs;
     private ArrayList<Integer> savedDrinksCount;
-    private float savedBalance;
+    private ArrayList<Float> savedBalance;
 
     private String currentUID;
+    private float currentBalance;
 
-    private TextView scannedCardIDText;
+    private TextView scannedCardUIDText;
+    private TextView patronBalanceText;
+    private TextView patronDrinksCountText;
     private EditText preferedDrinksEditText;
     private EditText patronNameEditText;
     private Button cancelButton;
     private Button okButton;
+    private Button addBalanceButton;
 
 
     //[Tile Reader Variables]
@@ -92,7 +96,7 @@ public class SetupPatronActivity extends AppCompatActivity
         savedDrinks = new ArrayList<String>();
         savedIDs = new ArrayList<String>();
         savedDrinksCount = new ArrayList<Integer>();
-        savedBalance = 0.00f;
+        savedBalance = new ArrayList<Float>();
 
         savedData = this.getApplicationContext().getSharedPreferences("Drinks-On-Me SavedData", Context.MODE_PRIVATE);
         savedTotal = savedData.getInt("savedTotal", 0);
@@ -102,16 +106,20 @@ public class SetupPatronActivity extends AppCompatActivity
             savedDrinks.add(savedData.getString("patronDrinks" + i, "Error"));
             savedIDs.add(savedData.getString("patronIDs" + i, "Error"));
             savedDrinksCount.add(savedData.getInt("patronDrinksCount" + i, 0));
+            savedBalance.add(savedData.getFloat("savedBalance" + i, 0.00f));
         }
-        savedBalance = savedData.getFloat("savedBalance", 0.00f);
+
 
         currentUID = "";
 
-        scannedCardIDText = (TextView) findViewById(R.id.scannedCardIDTextView);
+        scannedCardUIDText = (TextView) findViewById(R.id.scannedCardIDTextView);
+        patronBalanceText = (TextView) findViewById(R.id.balanceText);
+        patronDrinksCountText = (TextView) findViewById(R.id.drinksCountTextView);
         preferedDrinksEditText = (EditText) findViewById(R.id.drinkEditText);
         patronNameEditText = (EditText) findViewById(R.id.nameEditText);
         cancelButton = (Button) findViewById(R.id.cancelButton);
         okButton = (Button) findViewById(R.id.okButton);
+        addBalanceButton = (Button) findViewById(R.id.addBalanceButton);
 
         cancelButton.setOnClickListener(new View.OnClickListener()
         {
@@ -131,6 +139,19 @@ public class SetupPatronActivity extends AppCompatActivity
                 finish();
             }
         });
+
+        addBalanceButton.setOnClickListener(new View.OnClickListener()
+        {
+            @Override
+            public void onClick(View v)
+            {
+                currentBalance += 30.0f;
+                patronBalanceText.setText("Balance: " + currentBalance + "€");
+                savedBalance.set(getPatronIndexFromUID(currentUID), currentBalance);
+            }
+        });
+
+        loadLastUserDetails();
 
         Log.i("Scanner Buggery", "SetupPatronActivity OnCreate.");
         setupTileScanner();
@@ -200,9 +221,12 @@ public class SetupPatronActivity extends AppCompatActivity
             Log.i("Setup Patron", "Saving savedIDs" + i + ": " + savedIDs.get(i));
             edit.putInt("patronDrinksCount" + i, savedDrinksCount.get(i));
             Log.i("Setup Patron", "Saving savedDrinksCount" + i + ": " + savedDrinksCount.get(i));
+            Log.i("Setup Patron", "Saving savedBalance" + i + ": " + savedBalance.get(i));
+            edit.putFloat("savedBalance" + i, savedBalance.get(i));
         }
-        Log.i("Setup Patron", "Saving savedBalance: " + savedBalance);
-        edit.putFloat("savedBalance", savedBalance);
+
+        saveLastUsedDetails(edit);
+
         edit.commit();
 
         Log.i("Scanner Buggery", "SetupPatron OnStop");
@@ -222,7 +246,7 @@ public class SetupPatronActivity extends AppCompatActivity
                 {
                     Log.i("Setup Patron", "Replacing old local patron " + i);
                     Log.i("Setup Patron", "Old IDs:" + savedIDs.get(i));
-                    savedIDs.set(i, scannedCardIDText.getText().toString());
+                    savedIDs.set(i, scannedCardUIDText.getText().toString());
                     Log.i("Setup Patron", "New IDs:" + savedIDs.get(i));
                     savedNames.set(i, patronNameEditText.getText().toString());
                     savedDrinks.set(i, preferedDrinksEditText.getText().toString());
@@ -240,15 +264,46 @@ public class SetupPatronActivity extends AppCompatActivity
                 savedTotal++;
                 savedNames.add(patronNameEditText.getText().toString());
                 savedDrinks.add(preferedDrinksEditText.getText().toString());
-                savedIDs.add(scannedCardIDText.getText().toString());
+                savedIDs.add(scannedCardUIDText.getText().toString());
                 savedDrinksCount.add(0);
-                savedBalance += 30.0f;
+                savedBalance.add(30.0f);
             }
         }
-
-
     }
 
+    private void loadLastUserDetails()
+    {
+        Log.i("Setup Patron", "Loading User Details");
+        patronNameEditText.setText(savedData.getString("lastUsedPatronName", "Error"));
+        preferedDrinksEditText.setText(savedData.getString("lastUsedPatronDrinks", "Error"));
+        scannedCardUIDText.setText(savedData.getString("lastUsedPatronIDs", "Error"));
+        currentUID = savedData.getString("lastUsedPatronIDs", "Error");
+
+        patronDrinksCountText.setText("Drinks Consumed: " + savedData.getInt("patronDrinksCount" +getPatronIndexFromUID(scannedCardUIDText.getText().toString()), 0));
+        patronBalanceText.setText("Balance: " + savedData.getFloat("savedBalance" + getPatronIndexFromUID(scannedCardUIDText.getText().toString()), 0.00f) + "€");
+        currentBalance = savedData.getFloat("savedBalance" + getPatronIndexFromUID(scannedCardUIDText.getText().toString()), 0.00f);
+    }
+
+    private void saveLastUsedDetails(SharedPreferences.Editor edit)
+    {
+        edit.putString("lastUsedPatronName", patronNameEditText.getText().toString());
+        edit.putString("lastUsedPatronDrinks", preferedDrinksEditText.getText().toString());
+        edit.putString("lastUsedPatronIDs", scannedCardUIDText.getText().toString());
+    }
+
+    private int getPatronIndexFromUID(String inUID)
+    {
+        int i = 0;
+        for (String aUID: savedIDs)
+        {
+            if(inUID.matches(aUID))
+            {
+                return i;
+            }
+            i++;
+        }
+        return -1; //returns -1 if UID not found to match any, stored in shared preferences.
+    }
 
     //+++[TileScanner Code]
     private void setupTileScanner()
@@ -383,9 +438,28 @@ public class SetupPatronActivity extends AppCompatActivity
                         Log.i("TileScanner", "callback received: UID = " + outUID.toString());
 
                         currentUID = outUID.toString();
-                        scannedCardIDText.setText(currentUID);
+                        Log.e("Setup Patron", "scanned UID: " + currentUID);
 
 
+                        scannedCardUIDText.setText(currentUID);
+
+                        int j = getPatronIndexFromUID(currentUID);
+                        if(j != -1)
+                        {
+                            patronNameEditText.setText(savedNames.get(j));
+                            preferedDrinksEditText.setText(savedDrinks.get(j));
+                            patronDrinksCountText.setText("Drinks Consumed: " + savedDrinksCount.get(j));
+                            currentBalance = savedData.getFloat("savedBalance" + getPatronIndexFromUID(currentUID), 0.00f);
+                            patronBalanceText.setText("Balance: " + currentBalance + "€");
+                        }
+                        else
+                        {
+                            patronNameEditText.setText("-Enter Name-");
+                            preferedDrinksEditText.setText("-Enter Prefered Beverage-");
+                            patronDrinksCountText.setText("Drinks Consumed: 0");
+                            currentBalance = 0.00f;
+                            patronBalanceText.setText("Balance: " + currentBalance + "€");
+                        }
                     }
                 });
             }

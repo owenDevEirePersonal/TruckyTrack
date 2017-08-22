@@ -24,6 +24,22 @@
         app:layout_constraintVertical_bias="0.0"/>
 
     <TextView
+        android:id="@+id/balanceText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="0dp"
+        android:layout_marginRight="0dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="5dp"
+        android:text="0.00€"
+        android:textColor="@color/cast_expanded_controller_text_color"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintLeft_toLeftOf="@+id/patronPhoto"
+        app:layout_constraintRight_toRightOf="@+id/patronPhoto"
+        app:layout_constraintTop_toBottomOf="@+id/patronPhoto"
+        />
+
+    <TextView
         android:id="@+id/drinkCount"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

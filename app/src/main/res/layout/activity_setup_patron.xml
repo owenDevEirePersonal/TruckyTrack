@@ -15,10 +15,29 @@
         android:layout_marginBottom="8dp"
         android:layout_marginLeft="8dp"
         android:background="@android:color/transparent"
-        android:text="Add Patron"
+        android:text="Save Changes"
         android:textColor="@color/cast_expanded_controller_text_color"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"/>
+
+    <Button
+        android:id="@+id/addBalanceButton"
+        android:layout_width="90dp"
+        android:layout_height="46dp"
+        android:layout_marginBottom="8dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginTop="8dp"
+        android:background="@android:color/transparent"
+        android:text="Add Cash"
+        android:textColor="@color/cast_expanded_controller_text_color"
+        app:layout_constraintBottom_toBottomOf="@+id/balanceText"
+        app:layout_constraintHorizontal_bias="0.101"
+        app:layout_constraintLeft_toRightOf="@+id/balanceText"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/balanceText"
+        app:layout_constraintVertical_bias="0.489"
+        tools:layout_editor_absoluteY="208dp"/>
 
     <Button
         android:id="@+id/cancelButton"
@@ -92,6 +111,28 @@
         android:textColor="@color/cast_expanded_controller_text_color"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/drinkEditText"/>
+
+    <TextView
+        android:id="@+id/balanceText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="0dp"
+        android:layout_marginTop="23dp"
+        android:text="Balance: "
+        android:textColor="@color/cast_expanded_controller_text_color"
+        app:layout_constraintLeft_toLeftOf="@+id/idTextView"
+        app:layout_constraintTop_toBottomOf="@+id/drinksCountTextView"/>
+
+    <TextView
+        android:id="@+id/drinksCountTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="0dp"
+        android:layout_marginTop="24dp"
+        android:text="Drinks Consumed: "
+        android:textColor="@color/cast_expanded_controller_text_color"
+        app:layout_constraintLeft_toLeftOf="@+id/idTextView"
+        app:layout_constraintTop_toBottomOf="@+id/idTextView"/>
 
     <TextView
         android:id="@+id/scannedCardIDTextView"

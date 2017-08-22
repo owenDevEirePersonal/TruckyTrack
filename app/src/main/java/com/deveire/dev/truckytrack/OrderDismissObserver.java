@@ -6,5 +6,5 @@ package com.deveire.dev.truckytrack;
 
 public interface OrderDismissObserver
 {
-    void callBack(int inNumberOfDrinksOrdered);
+    void callBack(int inNumberOfDrinksOrdered, OrderView callingOrder);
 }

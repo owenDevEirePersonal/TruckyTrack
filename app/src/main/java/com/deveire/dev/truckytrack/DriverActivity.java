@@ -99,7 +99,7 @@ public class DriverActivity extends FragmentActivity implements DownloadCallback
     private ArrayList<String> savedDrinks;
     private ArrayList<String> savedIDs;
     private ArrayList<Integer> savedDrinksCount;
-    private float savedBalance;
+    private ArrayList<Float> savedBalance;
 
     private ArrayList<String> currentOrderUIDs;
     private ArrayList<OrderView> currentOrderViews;
@@ -251,7 +251,7 @@ public class DriverActivity extends FragmentActivity implements DownloadCallback
         savedDrinks = new ArrayList<String>();
         savedIDs = new ArrayList<String>();
         savedDrinksCount = new ArrayList<Integer>();
-        savedBalance = 0.00f;
+        savedBalance = new ArrayList<Float>();
 
         savedData = this.getApplicationContext().getSharedPreferences("Drinks-On-Me SavedData", Context.MODE_PRIVATE);
         savedTotal = savedData.getInt("savedTotal", 0);
@@ -261,8 +261,9 @@ public class DriverActivity extends FragmentActivity implements DownloadCallback
             savedDrinks.add(savedData.getString("patronDrinks" + i, "Error"));
             savedIDs.add(savedData.getString("patronIDs" + i, "Error"));
             savedDrinksCount.add(savedData.getInt("patronDrinksCount" + i, 0));
+            savedBalance.add(savedData.getFloat("savedBalance" + i, 0.00f));
         }
-        savedBalance = savedData.getFloat("savedBalance", 0.00f);
+
         //balanceText.setText("Balance: " + savedBalance);
 
         currentOrderViews = new ArrayList<OrderView>();
@@ -393,8 +394,10 @@ public class DriverActivity extends FragmentActivity implements DownloadCallback
                     Log.i("Setup Patron", "Loading patronIDs" + i + ": " + savedIDs.get(i));
                     savedDrinksCount.add(savedData.getInt("patronDrinksCount" + i, 0));
                     Log.i("Setup Patron", "Loading patronDrinksCount" + i + ": " + savedDrinksCount.get(i));
+                    savedBalance.add(savedData.getFloat("savedBalance" + i, 0.00f));
+                    Log.i("Setup Patron", "Loading patronBalance" + i + ": " + savedDrinksCount.get(i));
                 }
-                savedBalance = savedData.getFloat("savedBalance", 0.00f);
+
                 runOnUiThread(new Runnable()
                 {
                     @Override
@@ -405,7 +408,6 @@ public class DriverActivity extends FragmentActivity implements DownloadCallback
                 });
 
 
-                Log.i("Setup Patron", "Loading savedBalance: " + savedBalance);
             }
         }, 1000);
 
@@ -460,8 +462,9 @@ public class DriverActivity extends FragmentActivity implements DownloadCallback
             edit.putString("patronDrinks" + i, savedDrinks.get(i));
             edit.putString("patronIDs" + i, savedIDs.get(i));
             edit.putInt("patronDrinksCount" + i, savedDrinksCount.get(i));
+            edit.putFloat("savedBalance" + i, savedBalance.get(i));
         }
-        edit.putFloat("savedBalance", savedBalance);
+
         edit.commit();
 
 
@@ -521,8 +524,9 @@ public class DriverActivity extends FragmentActivity implements DownloadCallback
             edit.putString("patronDrinks" + i, savedDrinks.get(i));
             edit.putString("patronIDs" + i, savedIDs.get(i));
             edit.putInt("patronDrinksCount" + i, savedDrinksCount.get(i));
+            edit.putFloat("savedBalance" + i, savedBalance.get(i));
         }
-        edit.putFloat("savedBalance", savedBalance);
+
         edit.commit();
 
 
@@ -554,13 +558,13 @@ public class DriverActivity extends FragmentActivity implements DownloadCallback
             newOrder.setDismissObserver(new OrderDismissObserver()
             {
                 @Override
-                public void callBack(int inNumberOfDrinksOrdered)
+                public void callBack(int inNumberOfDrinksOrdered, OrderView callingOrder)
                 {
                     //Called be OrderView.dismissButton.onClickListener
-                    if (inNumberOfDrinksOrdered * 5.00f <= savedBalance)
+                    if (inNumberOfDrinksOrdered * 5.00f <= savedBalance.get(getPatronIndexFromUID(callingOrder.getAttachedUID())))
                     {
-                        addBalance(-5.00f * inNumberOfDrinksOrdered);
-                        addToDrinksCount(currentUID, inNumberOfDrinksOrdered);
+                        addBalance(-5.00f * inNumberOfDrinksOrdered, getPatronIndexFromUID(callingOrder.getAttachedUID()));
+                        addToDrinksCount(callingOrder.getAttachedUID(), inNumberOfDrinksOrdered);
                     }
                     //onclicklistener removes itself from the view(see OrderView.dismissButton.onClickListener)
                 }
@@ -571,7 +575,7 @@ public class DriverActivity extends FragmentActivity implements DownloadCallback
                 public void callBack(int inNumberOfDrinksOrdered, OrderView callingOrder)
                 {
                     //called by OrderView.addAnotherButton.onClickListner
-                    if (inNumberOfDrinksOrdered * 5.00f > savedBalance)
+                    if (inNumberOfDrinksOrdered * 5.00f > savedBalance.get(getPatronIndexFromUID(callingOrder.getAttachedUID())))
                     {
                         callingOrder.setPreferedDrinkText("Insufficent Funds");
                     }
@@ -599,13 +603,13 @@ public class DriverActivity extends FragmentActivity implements DownloadCallback
         {
             if(aUID.matches(inUID))
             {
-                if(savedBalance >= 5f)
+                if(savedBalance.get(i) >= 5f)
                 {
-                    anOrder.setOrder(savedNames.get(i), savedDrinks.get(i), savedDrinksCount.get(i));
+                    anOrder.setOrder(savedNames.get(i), savedDrinks.get(i), savedDrinksCount.get(i), savedBalance.get(i), currentUID);
                 }
                 else
                 {
-                    anOrder.setOrder(savedNames.get(i), "Out of Money", savedDrinksCount.get(i));
+                    anOrder.setOrder(savedNames.get(i), "Out of Money", savedDrinksCount.get(i), savedBalance.get(i), currentUID);
                 }
                 matchFound = true;
             }
@@ -614,15 +618,16 @@ public class DriverActivity extends FragmentActivity implements DownloadCallback
         //If UID matches no registered user.
         if(!matchFound)
         {
-            anOrder.setOrder("Unregistered", "Hasn't Paid", 0);
+            anOrder.setOrder("Unregistered", "Hasn't Paid", 0, 0, currentUID);
+            anOrder.setPreferedDrinkText("Hasn't Paid"); //manually setting text to "Hasn't Paid" removes the 1 that is attached to that text by default
         }
         return anOrder;
     }
 
     //called by OrderView's dismissButton onClickListener
-    public void addBalance(float cashToAdd)
+    public void addBalance(float cashToAdd, int i)
     {
-        savedBalance += cashToAdd;
+        savedBalance.set(i, savedBalance.get(i) + cashToAdd);
         //balanceText.setText("Balance: " + savedBalance);
     }
 
@@ -636,7 +641,7 @@ public class DriverActivity extends FragmentActivity implements DownloadCallback
                 savedDrinksCount.set(i, savedDrinksCount.get(i) + inDrinksOrdered);
                 SharedPreferences.Editor edit = savedData.edit();
                 edit.putInt("patronDrinksCount" + i, savedDrinksCount.get(i));
-                edit.putFloat("savedBalance", savedBalance);
+                edit.putFloat("savedBalance" + i, savedBalance.get(i));
                 edit.commit();
                 break;
             }
@@ -661,6 +666,19 @@ public class DriverActivity extends FragmentActivity implements DownloadCallback
         return false;
     }
 
+    private int getPatronIndexFromUID(String inUID)
+    {
+        int i = 0;
+        for (String aUID: currentOrderUIDs)
+        {
+            if(inUID.matches(aUID))
+            {
+                return i;
+            }
+            i++;
+        }
+        return -1; //returns -1 if UID not found to match any, stored in shared preferences.
+    }
 
     private void updateSavedDataForUID(String inUID)
     {
@@ -679,7 +697,7 @@ public class DriverActivity extends FragmentActivity implements DownloadCallback
         edit.putString("patronDrinks" + i, savedDrinks.get(i));
         edit.putString("patronIDs" + i, savedIDs.get(i));
         edit.putInt("patronDrinksCount" + i, savedDrinksCount.get(i));
-        edit.putFloat("savedBalance", savedBalance);
+        edit.putFloat("savedBalance" + i, savedBalance.get(i));
         edit.commit();
     }
 
